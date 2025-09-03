@@ -33,7 +33,6 @@ setup(
                     'pub_des_vel_node = comp_pkg.pub_des_vel_node:main',
                     
                     
-                    'imu_to_odom = comp_pkg.imu_to_odom:main',
                     'gazebo_to_odom = comp_pkg.gazebo_to_odom:main',
                     'laser_relay = comp_pkg.laser_relay:main',
 
@@ -41,8 +40,11 @@ setup(
                     'repub_kinect = comp_pkg.repub_kinect:main',
                     'make_timestamp_rgb_for_rtab_odom = comp_pkg.make_timestamp_rgb_for_rtab_odom:main',
 
+                    'compute_closest_obstacle = comp_pkg.compute_closest_obstacle:main',
 
+                    'catch_waypoints = comp_pkg.catch_waypoints:main',
 
+                    'fuzzy_planner = comp_pkg.fuzzy_planner:main',
 
         ],
     },

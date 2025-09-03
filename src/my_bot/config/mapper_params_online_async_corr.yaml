@@ -18,8 +18,8 @@ slam_toolbox:
 
 
     #use_map_saver: true
-    #mode: mapping 
-    mode: localization
+    mode: mapping 
+    #mode: localization
 
 
 

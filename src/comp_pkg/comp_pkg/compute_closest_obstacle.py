@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid, Odometry
+from geometry_msgs.msg import Point
 import math
 
 class ClosestObstacleFinder(Node):
@@ -11,13 +12,16 @@ class ClosestObstacleFinder(Node):
         self.occupied_cells = []  # List of (i, j)
         self.odom_pose = None
 
+        # Publisher for closest obstacle
+        self.closest_obstacle_pub = self.create_publisher(Point, 'closest_obstacle_in_range', 10)
+
         # Subscribe once to the global costmap
         self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
         # Subscribe continuously to odometry
         self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
 
         # Timer to check closest obstacle every second
-        self.timer = self.create_timer(1.0, self.check_closest_obstacle)
+        self.timer = self.create_timer(0.1, self.check_closest_obstacle)
 
     def map_callback(self, msg):
         """Store occupied cells only once."""
@@ -31,7 +35,7 @@ class ClosestObstacleFinder(Node):
         for i in range(height):
             for j in range(width):
                 idx = i * width + j
-                if msg.data[idx] >= 99:  # occupied
+                if msg.data[idx] >= 99:  # occupied/lethal
                     self.occupied_cells.append((i, j))
 
         self.get_logger().info(f"Stored {len(self.occupied_cells)} occupied cells from costmap.")
@@ -44,7 +48,7 @@ class ClosestObstacleFinder(Node):
         )
 
     def check_closest_obstacle(self):
-        """Check closest obstacle within 2 meters radius."""
+        """Check closest obstacle within 2 meters radius and publish it."""
         if self.map_data is None or self.odom_pose is None or not self.occupied_cells:
             return
 
@@ -71,6 +75,13 @@ class ClosestObstacleFinder(Node):
             self.get_logger().info(
                 f"Closest obstacle within 2m: {closest_cell}, distance: {min_dist:.2f} m"
             )
+
+            # Publish as Point
+            point_msg = Point()
+            point_msg.x = closest_cell[0]
+            point_msg.y = closest_cell[1]
+            point_msg.z = 0.0
+            self.closest_obstacle_pub.publish(point_msg)
         else:
             self.get_logger().info("No obstacle within 2 meters.")
 

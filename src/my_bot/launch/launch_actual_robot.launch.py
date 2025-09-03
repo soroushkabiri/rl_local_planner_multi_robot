@@ -85,6 +85,16 @@ def generate_launch_description():
     #ld.add_action(twist_mux)
 
 
+    robot_localization_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_node',
+        output='screen',
+        parameters=[os.path.join(pkg_path, 'config/ekf.yaml'), {'use_sim_time': False}]
+    )
+    #ld.add_action(robot_localization_node)
+
+
     return ld
 
 
