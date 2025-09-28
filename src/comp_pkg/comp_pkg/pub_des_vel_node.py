@@ -13,6 +13,8 @@ import time
 class XHatToCmdNode(Node):
     def __init__(self):
         super().__init__('x_hat_to_cmd_node')
+        self.max_v_followers=0.4
+        self.max_omega_followers=1.0
 
         # List of robot names
         self.robot_names = ['robot0_1', 'robot1_0', 'robot1_1']
@@ -65,16 +67,27 @@ class XHatToCmdNode(Node):
             self.leader_current_orientation = msg.data # its on degree (-180 to 180) degree
         return callback
 
+
+    def saturate(self, value, limit):
+        return float(max(min(value, limit), -limit))
+
+
     def timer_callback(self):
         current_time = time.time() - self.start_time
 
         for name in self.robot_names:
             cmd_msg = Twist()
-            cmd_msg.linear.x = self.v_hat_values[name]
-            cmd_msg.angular.z = self.calculate_angular_z(self.yaw_hat_values[name], self.current_orientation[name])
+            #cmd_msg.linear.x = self.v_hat_values[name]
+            cmd_msg.linear.x = self.saturate(self.v_hat_values[name], self.max_v_followers)
+
+            #cmd_msg.angular.z = self.calculate_angular_z(self.yaw_hat_values[name], self.current_orientation[name])
+            cmd_msg.angular.z = self.saturate(
+                self.calculate_angular_z(self.yaw_hat_values[name], self.current_orientation[name]),
+                self.max_omega_followers)            
             # All other fields remain zero
             self.cmd_publishers[name].publish(cmd_msg)
         
+
         # Update plots
 #        self.time_history.append(current_time)
 #        self.current_yaw_history_leader.append(self.leader_current_orientation)

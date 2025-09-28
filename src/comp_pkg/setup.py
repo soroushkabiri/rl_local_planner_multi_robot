@@ -36,7 +36,6 @@ setup(
                     'gazebo_to_odom = comp_pkg.gazebo_to_odom:main',
                     'laser_relay = comp_pkg.laser_relay:main',
 
-                    'data_necessary_for_fuzzy = comp_pkg.data_necessary_for_fuzzy:main',
                     'repub_kinect = comp_pkg.repub_kinect:main',
                     'make_timestamp_rgb_for_rtab_odom = comp_pkg.make_timestamp_rgb_for_rtab_odom:main',
 
@@ -45,6 +44,10 @@ setup(
                     'catch_waypoints = comp_pkg.catch_waypoints:main',
 
                     'fuzzy_planner = comp_pkg.fuzzy_planner:main',
+                    'global_path_manager = comp_pkg.global_path_manager:main',
+                    'bag_recorder = comp_pkg.bag_recorder:main',
+                    'bag_plotter = comp_pkg.bag_plotter:main',
+                    'consensus_tester = comp_pkg.consensus_tester:main',
 
         ],
     },

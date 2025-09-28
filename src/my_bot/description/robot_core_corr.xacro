@@ -186,19 +186,19 @@
 
     <link name="${prefix}coupler">
         <visual>
-            <origin xyz="-0.1 0 0" />
+            <origin xyz="-0.05 0 0" />
             <geometry>
-                <box size="0.2 0.05 0.005"/>
+                <box size="0.1 0.05 0.005"/>
             </geometry>
             <material name="blue" />
         </visual>
         <collision>
-            <origin xyz="-0.1 0 0" />
+            <origin xyz="-0.05 0 0" />
             <geometry>
-                <box size="0.2 0.05 0.005"/>
+                <box size="0.1 0.05 0.005"/>
             </geometry>
         </collision>
-        <xacro:inertial_box mass="0.01" x="0.2" y="0.05" z="0.005">
+        <xacro:inertial_box mass="0.01" x="0.1" y="0.05" z="0.005">
             <origin xyz="-0.1 0 0" rpy="0 0 0"/>
         </xacro:inertial_box>
     </link>
@@ -212,7 +212,7 @@
     <joint name="${prefix}revolute_joint_coupler_to_fixed" type="continuous">
         <parent link="${prefix}coupler"/>
         <child link="${prefix}fixed_link"/>
-        <origin xyz="-0.2 0 0.015" rpy="0 0 0"/>
+        <origin xyz="-0.1 0 0.015" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
         <dynamics damping="0.001" friction="0.001"/>
 
@@ -220,71 +220,24 @@
 
     <link name="${prefix}fixed_link">
         <visual>
-            <origin xyz="-0.5 0 0" />
+            <origin xyz="-0.3 0 0" />
             <geometry>
-                <box size="1 0.05 0.005"/>
+                <box size="0.6 0.05 0.005"/>
             </geometry>
             <material name="red" />
         </visual>
         <collision>
-            <origin xyz="-0.5 0 0" />
+            <origin xyz="-0.3 0 0" />
             <geometry>
-                <box size="1 0.05 0.005"/>
+                <box size="0.6 0.05 0.005"/>
             </geometry>
         </collision>
-        <xacro:inertial_box mass="0.01" x="1" y="0.05" z="0.005">
-            <origin xyz="-0.5 0 0" rpy="0 0 0"/>
+        <xacro:inertial_box mass="0.01" x="0.6" y="0.05" z="0.005">
+            <origin xyz="-0.3 0 0" rpy="0 0 0"/>
         </xacro:inertial_box>
     </link>
-
     <gazebo reference="${prefix}fixed_link">
         <material>Gazebo/Red</material>
     </gazebo>
-
-
-
-    <!--fixed point-->
-    <!--joint name="${prefix}fixed_joint_robot" type="continuous">
-        <parent link="${prefix}fixed_link"/>
-        <child link="${prefix}fixed_point"/>
-        <origin xyz= '-1.05 0 0' rpy="0 0 0"/>
-        <axis xyz="0 0 1"/>
-        <dynamics damping="100.0" friction="100.0"/>
-
-    </joint>
-
-
-    <link name="${prefix}fixed_point">
-        <visual>
-            <geometry>
-                <cylinder radius="0.01" length='0.01'/>
-            </geometry>
-            <material name="red"/>
-        </visual>
-        <collision>
-            <geometry>
-                <cylinder radius="0.01" length='0.01'/>
-            </geometry>
-        </collision>
-        <xacro:inertial_cylinder mass="0.01" length="0.01" radius="0.01">
-            <origin xyz="0 0 0" rpy="0 0 0"/>
-        </xacro:inertial_cylinder>
-    </link>
-
-    <gazebo reference="${prefix}fixed_point">
-        <material>Gazebo/Red</material>
-    </gazebo-->
-
-
-
-
-
-
-
-
-
     </xacro:macro>
-
-    
-
 </robot>

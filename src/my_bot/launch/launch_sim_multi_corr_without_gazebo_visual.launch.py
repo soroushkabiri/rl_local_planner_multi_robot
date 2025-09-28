@@ -22,8 +22,8 @@ def generate_launch_description():
     xacro_file_robot = os.path.join(pkg_path,'description','robot_corr.urdf.xacro')
     xacro_file_rect = os.path.join(pkg_path,'description','rect_obj_corr.urdf.xacro')
     leader_robot='robot0_0'
-
-    world = os.path.join(pkg_path, "worlds", "world1.world")
+    base_world= os.path.join(pkg_path, "worlds", "base.world")
+    world = os.path.join(pkg_path, "worlds", "world2.world")
 
 
     gzserver_cmd = IncludeLaunchDescription(
@@ -32,7 +32,7 @@ def generate_launch_description():
         ),
         #launch_arguments={"world": base_world}.items(),
 
-        launch_arguments={"world": world,}.items(),
+        launch_arguments={"world": base_world,}.items(),
         )
         
     gzclient_cmd = IncludeLaunchDescription(
@@ -42,7 +42,7 @@ def generate_launch_description():
 
     ld.add_action(gzserver_cmd)
     ##########
-    #ld.add_action(gzclient_cmd)
+    ld.add_action(gzclient_cmd)
     
 
 
@@ -86,7 +86,7 @@ def generate_launch_description():
             #defining initial pose of robots
             #f
             if i==0 and j==0:
-                x='-1.45'    
+                x='-0.9'    
                 y='0'
                 yaw='3.14159'
                # yaw='2.8'
@@ -94,17 +94,17 @@ def generate_launch_description():
             #l
             elif i==0 and j==1:
                 x='0'
-                y='-1.45'
+                y='-0.9'
                 yaw='4.71238'
             #b
             elif i==1 and j==0:
-                x='1.45'
+                x='0.9'
                 y='0'
                 yaw='0'
             #r
             elif i==1 and j==1:
                 x='0'
-                y='1.45'
+                y='0.9'
                 yaw='1.570795'
                
             # Create spawn call

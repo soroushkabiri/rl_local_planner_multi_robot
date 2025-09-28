@@ -47,11 +47,13 @@ class CartOdomPublisher(Node):
 
             if self.last_stamp is None:
                 return  # wait until we have a timestamp
-
+            
+            # Use current simulation time from ROS clock
+            stamp = self.get_clock().now().to_msg()
 
             # Publish Odometry
             odom = Odometry()
-            odom.header.stamp = self.last_stamp
+            odom.header.stamp = stamp
             odom.header.frame_id = 'odom'
             odom.child_frame_id = 'base_link'
             odom.pose.pose = pose
