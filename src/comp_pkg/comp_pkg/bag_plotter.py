@@ -8,14 +8,23 @@ from rclpy.serialization import deserialize_message
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32
 import math
-
+# --- IEEE plotting style ---
+plt.rcParams.update({
+    "font.family": "serif",      # Times/Serif font
+    "font.size": 12,              # base font
+    "axes.titlesize": 13,
+    "axes.labelsize": 13,
+    "legend.fontsize": 11,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11
+})
 
 class BagPlotter(Node):
     def __init__(self):
         super().__init__('bag_plotter')
 
         # --- Path to your bag file ---
-        bag_path = "map_3/map_3_0.db3"
+        bag_path = "map_11/map_11_0.db3"
         self.get_logger().info(f"Loading bag: {bag_path}")
 
         # Open bag database
@@ -33,7 +42,10 @@ class BagPlotter(Node):
         self.global_t0 = t0_ns / 1e9  # ns → s
         self.get_logger().info(f"Global start time: {self.global_t0:.3f} s (epoch)")
 
-        # --- Plot 1: leader cmd_vel vs follower v_hat ---
+        # --- Create one figure with 2 subplots (stacked vertically) ---
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True)
+
+        # --- Subplot 1: leader cmd_vel vs follower v_hat ---
         leader_topic = "/robot0_0/cmd_vel"
         follower_vhat_topics = [
             "/robot0_1/v_hat",
@@ -41,28 +53,24 @@ class BagPlotter(Node):
             "/robot1_1/v_hat",
         ]
 
-        plt.figure(figsize=(10, 5))
-
         # Leader (Twist)
         df_leader = self.load_twist(cur, leader_topic)
         if not df_leader.empty:
-            plt.plot(df_leader["time"], df_leader["linear_x"], "k--", label=f"{leader_topic} (leader)")
+            ax1.plot(df_leader["time"], df_leader["linear_x"], "k--", 
+                    label="Leader desired V")
 
         # Followers (Float32)
-        for topic in follower_vhat_topics:
+        for i, topic in enumerate(follower_vhat_topics, start=1):
             df = self.load_float(cur, topic)
             if not df.empty:
-                plt.plot(df["time"], df["value"], label=topic)
+                ax1.plot(df["time"], df["value"], label=f"Follower {i} estimated V")
 
-        plt.xlabel("Time [s]")
-        plt.ylabel("Velocity [m/s]")
-        plt.title("Leader cmd_vel vs Followers v_hat")
-        #plt.xlim(0, 160)   # ⬅ limit to 140 s
+        ax1.set_ylabel("Velocity [m/s]")
+        ax1.set_title("Leader desired V vs Followers estimated V")
+        ax1.grid(True)
+        ax1.legend()
 
-        plt.legend()
-        plt.grid(True)
-
-        # --- Plot 2: yaw comparison ---
+        # --- Subplot 2: yaw comparison ---
         yaw_leader_topic = "/robot0_0/yaw_deg"  # already in degrees
         yaw_hat_topics = [
             "/robot0_1/yaw_hat",
@@ -70,26 +78,25 @@ class BagPlotter(Node):
             "/robot1_1/yaw_hat",
         ]
 
-        plt.figure(figsize=(10, 5))
         df_leader = self.load_float(cur, yaw_leader_topic, radians=False, wrap360=True)
         if not df_leader.empty:
-            plt.plot(df_leader["time"], df_leader["value"], "k--", label=yaw_leader_topic)
+            ax2.plot(df_leader["time"], df_leader["value"], "k--", 
+                    label=r"Leader desired $\theta$")
 
-        for topic in yaw_hat_topics:
+        for i, topic in enumerate(yaw_hat_topics, start=1):
             df = self.load_float(cur, topic, radians=True, wrap360=True)  # rad→deg then wrap
             if not df.empty:
-                plt.plot(df["time"], df["value"], label=topic)
+                ax2.plot(df["time"], df["value"], label=rf"Follower {i} estimated $\theta$")
 
-        plt.xlabel("Time [s]")
-        plt.ylabel("Yaw [deg] (0–360)")
-        plt.title("Leader vs Followers Yaw")
-        #plt.xlim(0, 160)   # ⬅ limit to 140 s
+        ax2.set_xlabel("Time [s]")
+        ax2.set_ylabel(r"Yaw [deg] (0–360)")
+        ax2.set_title(r"Leader desired $\theta$ vs Followers estimated $\theta$")
+        ax2.grid(True)
+        ax2.legend()
 
-        plt.legend()
-        plt.grid(True)
-
-        # --- Show all plots ---
+        plt.tight_layout()
         plt.show()
+
 
         # Shutdown after plotting
         rclpy.shutdown()

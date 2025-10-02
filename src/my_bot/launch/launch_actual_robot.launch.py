@@ -25,22 +25,6 @@ def generate_launch_description():
 
 
 
-    gzserver_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory("gazebo_ros"), "launch", "gzserver.launch.py")
-        ),
-
-        )
-        
-    gzclient_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory("gazebo_ros"), "launch", "gzclient.launch.py")),
-                   launch_arguments={'gui-client-plugin': ''}.items() )
-
-    #ld.add_action(gzserver_cmd)
-    #ld.add_action(gzclient_cmd)
-    
-
 
     # now inserting rectangular object
     robot_description_rect = Command(['xacro ', xacro_file_rect, ' prefix:=rect_obj_'])
@@ -65,34 +49,6 @@ def generate_launch_description():
 
     
 
-    joystick_launcher = IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([os.path.join(get_package_share_directory('my_bot'),'launch','joystick.launch.py')]), 
-        #launch_arguments={'cmd_vel_topic': '/'+leader_robot+'/cmd_vel'}.items())
-        launch_arguments={'cmd_vel_topic': '/cmd_vel_joy'}.items())
-
-    #ld.add_action(joystick_launcher)
-
-
-    twis_mux_params=os.path.join(get_package_share_directory('my_bot'),'config','twist_mux.yaml')
-    twist_mux=Node(
-        package='twist_mux',
-        executable='twist_mux',
-        parameters=[twis_mux_params,
-                    #{'use_sim_time': True}
-                    ],
-        remappings=[('/cmd_vel_out','/robot0_0/cmd_vel')]
-    )
-    #ld.add_action(twist_mux)
-
-
-    robot_localization_node = Node(
-        package='robot_localization',
-        executable='ekf_node',
-        name='ekf_node',
-        output='screen',
-        parameters=[os.path.join(pkg_path, 'config/ekf.yaml'), {'use_sim_time': False}]
-    )
-    #ld.add_action(robot_localization_node)
 
 
     return ld

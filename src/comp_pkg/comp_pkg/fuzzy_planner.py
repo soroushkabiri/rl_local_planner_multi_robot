@@ -260,12 +260,9 @@ class FuzzyPathPlanner(Node):
                 cos_delta = np.dot(p_relative, velocity_relative.T) / (dist_relative * np.linalg.norm(velocity_relative))
             delta = np.arccos(np.clip(cos_delta, -1, 1))
             # Calculate variable safety radius. the safety radius is the measure that act as on off switch in repulsive force calculation. r_safe=r_min_safe+r_var_safe
-            #r_min_p=2.5
-            #r_min_p=0.8
-            #r_activate_p=2
+            # for map 3
             r_min_p=0.02
             r_activate_p=0.3
-            #r_activate_p=6
             d_2=0
             if dist_relative<=r_activate_p:
                 n_2=10

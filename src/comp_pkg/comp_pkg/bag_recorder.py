@@ -22,7 +22,7 @@ class BagRecorderNode(Node):
 
         # Create a custom folder name with timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.bag_name = "map_3"
+        self.bag_name = "map_11"
 
         # Command for ros2 bag record
         cmd = ["ros2", "bag", "record", "-o", self.bag_name] + self.topics
