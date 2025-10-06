@@ -11,12 +11,12 @@ import math
 # --- IEEE plotting style ---
 plt.rcParams.update({
     "font.family": "serif",      # Times/Serif font
-    "font.size": 12,              # base font
-    "axes.titlesize": 13,
-    "axes.labelsize": 13,
-    "legend.fontsize": 11,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11
+    "font.size": 15,              # base font
+    "axes.titlesize": 18,
+    "axes.labelsize": 18,
+    "legend.fontsize": 12,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16
 })
 
 class BagPlotter(Node):
@@ -24,7 +24,7 @@ class BagPlotter(Node):
         super().__init__('bag_plotter')
 
         # --- Path to your bag file ---
-        bag_path = "map_11/map_11_0.db3"
+        bag_path = "map_step_test/map_step_test_0.db3"
         self.get_logger().info(f"Loading bag: {bag_path}")
 
         # Open bag database
@@ -43,7 +43,8 @@ class BagPlotter(Node):
         self.get_logger().info(f"Global start time: {self.global_t0:.3f} s (epoch)")
 
         # --- Create one figure with 2 subplots (stacked vertically) ---
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True)
+        #fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, dpi=100)
 
         # --- Subplot 1: leader cmd_vel vs follower v_hat ---
         leader_topic = "/robot0_0/cmd_vel"
@@ -65,7 +66,7 @@ class BagPlotter(Node):
             if not df.empty:
                 ax1.plot(df["time"], df["value"], label=f"Follower {i} estimated V")
 
-        ax1.set_ylabel("Velocity [m/s]")
+        ax1.set_ylabel("Velocity (m/s)")
         ax1.set_title("Leader desired V vs Followers estimated V")
         ax1.grid(True)
         ax1.legend()
@@ -88,8 +89,8 @@ class BagPlotter(Node):
             if not df.empty:
                 ax2.plot(df["time"], df["value"], label=rf"Follower {i} estimated $\theta$")
 
-        ax2.set_xlabel("Time [s]")
-        ax2.set_ylabel(r"Yaw [deg] (0–360)")
+        ax2.set_xlabel("Time (s)")
+        ax2.set_ylabel(r"Heading (deg)")
         ax2.set_title(r"Leader desired $\theta$ vs Followers estimated $\theta$")
         ax2.grid(True)
         ax2.legend()
