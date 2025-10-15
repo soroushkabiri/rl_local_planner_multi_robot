@@ -43,8 +43,7 @@ class CartOdomPublisher(Node):
             idx = msg.name.index(self.cart_link_name)
             pose = msg.pose[idx]
             twist = msg.twist[idx]
-
-
+            
             if self.last_stamp is None:
                 return  # wait until we have a timestamp
             

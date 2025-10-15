@@ -125,11 +125,7 @@ class FuzzyPathPlanner(Node):
             self.waypoints = None
             self.current_wp_index = 0
             self.goal_reached_pub.publish(Bool(data=True))  # notify manager
-
             return
-
-
-
 
 
         goal_position = self.waypoints[self.current_wp_index].reshape(1, 2)
@@ -357,8 +353,7 @@ class FuzzyPathPlanner(Node):
                     # Normalize the normal vector
                     unit_normal = normal_vector / np.linalg.norm(normal_vector)
                     F_rep_v += unit_normal * d_1 * 0.2
-        #F_t =40*F_rep_p+10*F_rep_v
-        #F_t =25*F_rep_p+16*F_rep_v
+
         F_t =self.repulsive_fuzzy_const*F_rep_p+0*F_rep_v
         return F_t
 
@@ -388,7 +383,7 @@ class FuzzyPathPlanner(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = FuzzyPathPlanner(num_waypoints=10, waypoint_tolerance=0.4)  
+    node = FuzzyPathPlanner(num_waypoints=50, waypoint_tolerance=0.2)  
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

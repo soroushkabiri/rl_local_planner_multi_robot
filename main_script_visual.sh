@@ -15,8 +15,6 @@ split-window -v "sleep 70; ./6_launch.sh" \; \
 split-window -h "sleep 80; ./7_launch.sh" \; \
 select-layout tiled
 
-#sleep 84
-
 # Second tmux session
 tmux new-session -d -s ros_sim2 "sleep 81; ./8_launch.sh" \; \
 split-window -v "sleep 95; ./9_launch.sh" \; \

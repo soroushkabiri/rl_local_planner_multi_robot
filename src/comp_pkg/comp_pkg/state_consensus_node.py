@@ -25,9 +25,9 @@ class ConsensusObserver(Node):
         # Declare parameters 
         self.declare_parameter("gamma_v",1.01)
         self.declare_parameter('gamma_yaw',1.01)
-        # self.declare_parameter("epsilon_v",0.01) #for map3
-        #self.declare_parameter("epsilon_v",0.05) #for sin
-        self.declare_parameter("epsilon_v",0.02) #for step
+        # self.declare_parameter("epsilon_v",0.01) #TESTING for map3
+        #self.declare_parameter("epsilon_v",0.05) #TESTING for sin
+        self.declare_parameter("epsilon_v",0.02) 
 
         self.declare_parameter('epsilon_yaw',0.1)
         self.declare_parameter("uo_v",0.0)

@@ -7,20 +7,14 @@
     <xacro:include filename="camera_corr_rect_obj.xacro"/>
     <xacro:include filename="imu_corr_rect_obj.xacro"/>
 
-
     <!--xacro:rect_obj prefix="$(arg prefix)"/>
     <xacro:lidar_module prefix="$(arg prefix)"/>
     <xacro:camera_module prefix="$(arg prefix)"/>
     <xacro:imu_module prefix="$(arg prefix)"/-->
 
-
-
-
     <xacro:rect_obj prefix=""/>
     <xacro:lidar_module prefix=""/>
     <xacro:camera_module prefix=""/>
     <xacro:imu_module prefix=""/>
-
-
 
 </robot>

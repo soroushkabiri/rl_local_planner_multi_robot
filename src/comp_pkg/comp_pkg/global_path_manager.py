@@ -45,10 +45,6 @@ class GlobalPathManager(Node):
         self.publisher_.publish(self.global_path)
 
 
-
-
-
-
 def main(args=None):
     rclpy.init(args=args)
     node = GlobalPathManager()
