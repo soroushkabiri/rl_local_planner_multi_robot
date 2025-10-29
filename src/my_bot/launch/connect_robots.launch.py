@@ -13,18 +13,18 @@ def generate_launch_description():
         ),
 
         # Second service after 4 seconds
-        TimerAction(
-            period=4.0,
-            actions=[
-                ExecuteProcess(
-                    cmd=[
-                        'ros2', 'service', 'call', '/ATTACHLINK', 'linkattacher_msgs/srv/AttachLink',
-                        "{model1_name: 'rect_obj', link1_name: 'base_link', model2_name: 'robot1_1', link2_name: 'robot1_1_fixed_link'}"
-                    ],
-                    output='screen'
-                )
-            ]
-        ),
+        #TimerAction(
+        ##    period=4.0,
+        #   actions=[
+        #        ExecuteProcess(
+        #            cmd=[
+        #                'ros2', 'service', 'call', '/ATTACHLINK', 'linkattacher_msgs/srv/AttachLink',
+        #                "{model1_name: 'rect_obj', link1_name: 'base_link', model2_name: 'robot1_1', link2_name: 'robot1_1_fixed_link'}"
+        #            ],
+        #            output='screen'
+        #        )
+        #    ]
+        #),
 
         # Third service after 7 seconds
         TimerAction(

@@ -1,3 +1,47 @@
+# #!/usr/bin/env python3
+
+# import math
+# import rclpy
+# from rclpy.node import Node
+# from sensor_msgs.msg import Imu
+# from std_msgs.msg import Float32
+
+# def quaternion_to_yaw_deg(qx, qy, qz, qw):
+#     siny_cosp = 2.0 * (qw * qz + qx * qy)
+#     cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+#     yaw = math.atan2(siny_cosp, cosy_cosp)
+#     return math.degrees(yaw)
+
+# class ImuYawPublisher(Node):
+#     def __init__(self):
+#         super().__init__('imu_yaw_publisher')
+#         self.declare_parameter('imu_topic', 'imu')
+#         imu_topic = self.get_parameter('imu_topic').get_parameter_value().string_value
+#         self.sub = self.create_subscription(Imu, imu_topic+'/imu', self.imu_callback, 10)
+#         self.pub = self.create_publisher(Float32, imu_topic+ '/yaw_deg', 10)
+#         self.get_logger().info(f"Subscribed to IMU topic: {imu_topic+'/imu'}, Publishing {imu_topic} '/yaw_deg' in same namespace.")
+
+#     def imu_callback(self, msg):
+#         q = msg.orientation
+#         yaw_deg = quaternion_to_yaw_deg(q.x, q.y, q.z, q.w)
+#         yaw_msg = Float32()
+#         yaw_msg.data = yaw_deg
+#         self.pub.publish(yaw_msg)
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = ImuYawPublisher()
+#     try:
+#         rclpy.spin(node)
+#     except KeyboardInterrupt:
+#         pass
+#     node.destroy_node()
+#     rclpy.shutdown()
+
+# if __name__ == '__main__':
+#     main()
+
+
 #!/usr/bin/env python3
 
 import math
@@ -6,27 +50,52 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu
 from std_msgs.msg import Float32
 
-def quaternion_to_yaw_deg(qx, qy, qz, qw):
+
+def quaternion_to_yaw(qx, qy, qz, qw):
+    """Convert quaternion (x, y, z, w) to yaw in radians."""
     siny_cosp = 2.0 * (qw * qz + qx * qy)
     cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
     yaw = math.atan2(siny_cosp, cosy_cosp)
-    return math.degrees(yaw)
+    return yaw  # radians
+
 
 class ImuYawPublisher(Node):
     def __init__(self):
         super().__init__('imu_yaw_publisher')
+
+        # Parameter for IMU topic base name
         self.declare_parameter('imu_topic', 'imu')
         imu_topic = self.get_parameter('imu_topic').get_parameter_value().string_value
-        self.sub = self.create_subscription(Imu, imu_topic+'/imu', self.imu_callback, 10)
-        self.pub = self.create_publisher(Float32, imu_topic+ '/yaw_deg', 10)
-        self.get_logger().info(f"Subscribed to IMU topic: {imu_topic+'/imu'}, Publishing {imu_topic} '/yaw_deg' in same namespace.")
+
+        # Subscribers and publishers
+        self.sub = self.create_subscription(
+            Imu,
+            imu_topic + '/imu',
+            self.imu_callback,
+            10
+        )
+        self.pub_yaw_deg = self.create_publisher(Float32, imu_topic + '/yaw_deg', 10)
+        self.pub_yaw_rad = self.create_publisher(Float32, imu_topic + '/yaw_rad', 10)
+
+        self.get_logger().info(
+            f"Subscribed to: {imu_topic+'/imu'} | Publishing: {imu_topic+'/yaw_deg'} and {imu_topic+'/yaw_rad'}"
+        )
 
     def imu_callback(self, msg):
         q = msg.orientation
-        yaw_deg = quaternion_to_yaw_deg(q.x, q.y, q.z, q.w)
-        yaw_msg = Float32()
-        yaw_msg.data = yaw_deg
-        self.pub.publish(yaw_msg)
+        yaw_rad = quaternion_to_yaw(q.x, q.y, q.z, q.w)
+        yaw_deg = math.degrees(yaw_rad)
+
+        # Publish yaw in degrees
+        msg_deg = Float32()
+        msg_deg.data = yaw_deg
+        self.pub_yaw_deg.publish(msg_deg)
+
+        # Publish yaw in radians
+        msg_rad = Float32()
+        msg_rad.data = yaw_rad
+        self.pub_yaw_rad.publish(msg_rad)
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -38,5 +107,8 @@ def main(args=None):
     node.destroy_node()
     rclpy.shutdown()
 
+
 if __name__ == '__main__':
     main()
+
+

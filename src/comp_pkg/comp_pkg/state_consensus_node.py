@@ -37,7 +37,9 @@ class ConsensusObserver(Node):
 
 
         # Follower Names
-        self.follower_names = ['robot0_1', 'robot1_0', 'robot1_1']
+        #self.follower_names = ['robot0_1', 'robot1_0', 'robot1_1']
+        self.follower_names = ['robot0_1', 'robot1_0',]
+
         self.num_followers = len(self.follower_names)
         self.step_consensus=10
         
@@ -61,10 +63,8 @@ class ConsensusObserver(Node):
         self.beta_yaw=(self.epsilon_yaw*(3**(0.5-0.5*self.gamma_yaw)))/(0.3962**(0.5+0.5*self.gamma_yaw))
 
         # Adjacency matrix (size NxN) and leader connectivity vector (size N)
-        self.a = np.array([[0, 1, 0],
-                           [1, 0, 1],
-                           [0, 1, 0]])
-        self.b = np.array([1, 0, 0])  # Only first follower connected to leader directly
+        self.a = np.array([[0,1],[1,0]])
+        self.b = np.array([1, 0])  # Only first follower connected to leader directly
 
         # Leader States 
         self.v_leader = 0.0
@@ -237,7 +237,7 @@ class ConsensusObserver(Node):
         for i in range(self.num_followers):
             self.v_history_followers[i].append(self.v_hat[i])
 
-        self.update_plot()
+        #self.update_plot()
 
     def observer_update(self, i, estimates, leader_value, x_hat_i,var_type):
         temp_sum = 0.0

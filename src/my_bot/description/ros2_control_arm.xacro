@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+
+  <xacro:macro name="arm_controller" params="prefix">
+
+    <!-- ros2_control configuration for arm joints -->
+    <ros2_control name="${prefix}_arm_system" type="system">
+      <hardware>
+        <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+      </hardware>
+
+      <!-- Coupler joint: position control -->
+      <joint name="${prefix}revolute_joint_robot_to_coupler">
+        <command_interface name="position">
+          <param name="min">-3.14</param>
+          <param name="max">3.14</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+      <!-- Fixed joint: position control -->
+      <joint name="${prefix}revolute_joint_coupler_to_fixed">
+        <command_interface name="position">
+          <param name="min">-3.14</param>
+          <param name="max">3.14</param>
+        </command_interface>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+      </joint>
+
+    </ros2_control>
+
+    <!-- Gazebo plugin for ros2_control -->
+    <gazebo>
+      <plugin name="${prefix}gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+        <ros>
+          <namespace>${prefix}</namespace>
+        </ros>
+        <parameters>$(find my_bot)/config/${prefix}arm_controllers.yaml</parameters>
+      </plugin>
+    </gazebo>
+
+  </xacro:macro>
+</robot>
