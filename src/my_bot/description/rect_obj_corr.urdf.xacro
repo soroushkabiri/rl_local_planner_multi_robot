@@ -4,8 +4,10 @@
 
     <xacro:include filename="rect_obj_core_corr.xacro"/>
     <xacro:include filename="lidar_corr_rect_obj.xacro"/>
-    <xacro:include filename="camera_corr_rect_obj.xacro"/>
+    <!--xacro:include filename="camera_corr_rect_obj.xacro"/-->
     <xacro:include filename="imu_corr_rect_obj.xacro"/>
+    <!--xacro:include filename="depth_camera_corr_rect_obj.xacro"/-->
+
 
     <!--xacro:rect_obj prefix="$(arg prefix)"/>
     <xacro:lidar_module prefix="$(arg prefix)"/>
@@ -14,7 +16,8 @@
 
     <xacro:rect_obj prefix=""/>
     <xacro:lidar_module prefix=""/>
-    <xacro:camera_module prefix=""/>
+    <!--xacro:camera_module prefix=""/-->
     <xacro:imu_module prefix=""/>
+    <!--xacro:depth_camera_module prefix=""/-->
 
 </robot>

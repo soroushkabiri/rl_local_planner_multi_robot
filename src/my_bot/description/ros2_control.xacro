@@ -26,21 +26,11 @@
 
     <gazebo>
         <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
-            <robotNamespace>${frame_prefix}</robotNamespace>
-
-            <ros>
-                <param name="update_rate" value="30"/>
-                <param name="use_sim_time" value="true"/>
-                <param name="parameters" value="$(find my_bot)/config/my_controllers.yaml"/>
-            </ros>
-
-
-
-            <!--param name="update_rate"      value="30.0"/-->
-
-            <!--parameters>$(find my_bot)/config/my_controllers.yaml</parameters-->
-
+            <parameters>$(find my_bot_1)/config/my_controllers.yaml</parameters>
         </plugin>
     </gazebo>
 
 </robot>
+
+
+

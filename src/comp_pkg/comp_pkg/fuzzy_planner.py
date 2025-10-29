@@ -381,15 +381,39 @@ class FuzzyPathPlanner(Node):
         #self.get_logger().info(f" theta_d = {np.rad2deg(theta_d):.1f}, theta = {np.rad2deg(self.theta):.1f} °")
         return v_d, -omega_d 
 
+    def publish_stop(self):
+        """Send a zero Twist (stop command)."""
+        twist = Twist()
+        self.cmd_pub.publish(twist)
+        self.get_logger().info("cmd_vel_fuzzy → STOP (zero velocity)")
+
+
 def main(args=None):
     rclpy.init(args=args)
-    node = FuzzyPathPlanner(num_waypoints=50, waypoint_tolerance=0.2)  
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    node = FuzzyPathPlanner(num_waypoints=10, waypoint_tolerance=0.2)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("KeyboardInterrupt detected — stopping robot.")
+    finally:
+        # Send zero velocity before shutting down
+        node.publish_stop()
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+
+
+#def main(args=None):
+#    rclpy.init(args=args)
+#    node = FuzzyPathPlanner(num_waypoints=10, waypoint_tolerance=0.2)  
+#    rclpy.spin(node)
+#    node.destroy_node()
+#    rclpy.shutdown()
+
+#if __name__ == '__main__':
+#    main()
 
 #ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: -14.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}}"
 

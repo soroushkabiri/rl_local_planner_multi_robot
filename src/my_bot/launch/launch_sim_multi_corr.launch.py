@@ -13,10 +13,12 @@ from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, 
 from launch_ros.substitutions import FindPackageShare
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.actions import IncludeLaunchDescription, ExecuteProcess
+from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.actions import Node
+from launch.actions import TimerAction
 
 def generate_launch_description():
     ld = LaunchDescription()
-    
     # Process the URDF file
     pkg_path = os.path.join(get_package_share_directory('my_bot'))
     xacro_file_robot = os.path.join(pkg_path,'description','robot_corr.urdf.xacro')
@@ -26,15 +28,11 @@ def generate_launch_description():
     world = os.path.join(pkg_path, "worlds", "world3.world")
     base_world= os.path.join(pkg_path, "worlds", "base.world")
 
-
     gzserver_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory("gazebo_ros"), "launch", "gzserver.launch.py")
-        ),
+            os.path.join(get_package_share_directory("gazebo_ros"), "launch", "gzserver.launch.py")),
         #launch_arguments={"world": base_world}.items(),
-
-        launch_arguments={"world": world,}.items(),
-        )
+        launch_arguments={"world": world,}.items(),)
         
     gzclient_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -44,8 +42,6 @@ def generate_launch_description():
     ld.add_action(gzserver_cmd)
     ld.add_action(gzclient_cmd)
     
-
-
     # now inserting rectangular object
     robot_description_rect = Command(['xacro ', xacro_file_rect, ' prefix:=', 'rect_obj' + '_'])
     rect_obj_state_publisher = Node(package="robot_state_publisher",
@@ -59,131 +55,79 @@ def generate_launch_description():
                 arguments=["-topic", 'rect_obj' + "/robot_description","-entity", 'rect_obj', "-robot_namespace", 'rect_obj',
                     "-x", '0.0', "-y", '0.0', "-z", "0.0", "-Y", "3.14159",
                   #    "-unpause", 
-
                      ] , output="screen")
 
     ld.add_action(rect_obj_state_publisher)
     ld.add_action(spawn_entity_rect_obj)
 
-    ROWS = 2
-    COLS = 2
+    ROWS, COLS = 2, 2
 
-    x = -ROWS
-    y = -COLS
+    # Define initial poses for the robots (skip the 4th one)
+    robot_configs = [
+        {"name": "robot0_0", "x": 0,   "y": -0.9, "yaw": 4.71238},
+        {"name": "robot0_1", "x": 0.9, "y": 0,   "yaw": 0},
+        {"name": "robot1_0", "x": 0,   "y": 0.9, "yaw": 1.570795},
+    ]
+
     last_action = None
 
-    # Spawn turtlebot3 instances in gazebo
-    for i in range(COLS):
-        for j in range(ROWS):
-            # Construct a unique name and namespace
-            name = "robot" + str(i) + "_" + str(j)
-            robot_description = Command(['xacro ', xacro_file_robot, ' prefix:=', name + '_'])
+    for cfg in robot_configs:
+        name = cfg["name"]
 
-            turtlebot_state_publisher = Node(package="robot_state_publisher",
-                namespace=name,executable="robot_state_publisher",output="screen",
-                parameters=[{'robot_description': robot_description,"use_sim_time": True,'prefix': name+'_'}],)
+        # Robot description
+        robot_description = ParameterValue(
+            Command(['xacro ', xacro_file_robot, ' prefix:=', name + '_']),
+            value_type=str)
 
-            #defining initial pose of robots
-            #f
-            if i==0 and j==0:
-                x='-0.9'    
-                y='0'
-                yaw='3.14159'
-               # yaw='2.8'
+        # Robot state publisher
+        robot_state_publisher = Node(
+            package="robot_state_publisher",
+            namespace=name,
+            executable="robot_state_publisher",
+            output="screen",
+            parameters=[{'robot_description': robot_description, "use_sim_time": True, 'prefix': name+'_'}],
+        )
 
-            #l
-            elif i==0 and j==1:
-                x='0'
-                y='-0.9'
-                yaw='4.71238'
-            #b
-            elif i==1 and j==0:
-                x='0.9'
-                y='0'
-                yaw='0'
-            #r
-            elif i==1 and j==1:
-                x='0'
-                y='0.9'
-                yaw='1.570795'
-               
-            # Create spawn call
-            spawn_entity = Node(
-                package="gazebo_ros",
-                executable="spawn_entity.py",
-                arguments=["-topic", name + "/robot_description",
-                    "-entity",
-                    name,
-                    "-robot_namespace",
-                    name,
-                    "-x", str(x), "-y", str(y), "-z", "0.0", "-Y", yaw, 
-                    #"-unpause",
-                    
-                ],
-                output="screen",
-            )
-            # Add after the spawn_entity creation:
-            #print(f"Spawning robot: {name} at position ({x}, {y})")
+        # Spawn entity
+        spawn_entity = Node(
+            package="gazebo_ros",
+            executable="spawn_entity.py",
+            arguments=[
+                "-topic", f"{name}/robot_description",
+                "-entity", name,
+                "-robot_namespace", name,
+                "-x", str(cfg["x"]),
+                "-y", str(cfg["y"]),
+                "-z", "0.0",
+                "-Y", str(cfg["yaw"])
+            ],
+            output="screen",)
 
-            if last_action is None:
-                # Call add_action directly for the first robot to facilitate chain instantiation via RegisterEventHandler
-                ld.add_action(turtlebot_state_publisher)
-                ld.add_action(spawn_entity)
-
-            else:
-                # Use RegisterEventHandler to ensure next robot creation happens only after the previous one is completed.
-                # Simply calling ld.add_action for spawn_entity introduces issues due to parallel run.
-                spawn_turtlebot3_event = RegisterEventHandler(
+        if last_action is None:
+            # First robot: add actions directly
+            ld.add_action(robot_state_publisher)
+            ld.add_action(spawn_entity)
+        else:
+            # Subsequent robots: register to run after previous spawn
+            ld.add_action(
+                RegisterEventHandler(
                     event_handler=OnProcessExit(
                         target_action=last_action,
-                        on_exit=[
-                                 turtlebot_state_publisher,
-                                 spawn_entity,
-                        ]
-                    )
-                )
-                ld.add_action(spawn_turtlebot3_event)
+                        on_exit=[robot_state_publisher, spawn_entity])))
 
-            # Save last instance for next RegisterEventHandler
-            last_action = spawn_entity
+        last_action = spawn_entity
 
     joystick_launcher = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(get_package_share_directory('my_bot'),'launch','joystick.launch.py')]), 
-        #launch_arguments={'cmd_vel_topic': '/'+leader_robot+'/cmd_vel'}.items())
         launch_arguments={'cmd_vel_topic': '/cmd_vel_joy'}.items())
-
+    
     ld.add_action(joystick_launcher)
 
-
     twis_mux_params=os.path.join(get_package_share_directory('my_bot'),'config','twist_mux.yaml')
-    twist_mux=Node(
-        package='twist_mux',
-        executable='twist_mux',
-        parameters=[twis_mux_params,{'use_sim_time': True}],
-        remappings=[('/cmd_vel_out','/robot0_0/cmd_vel')]
-    )
+    twist_mux=Node(package='twist_mux', executable='twist_mux', parameters=[twis_mux_params,{'use_sim_time': True}],
+        remappings=[('/cmd_vel_out','/robot0_0/cmd_vel')])
     ld.add_action(twist_mux)
 
-
-    # Hardcoded or derived topic/frame names for the single robot
-    #scan_topic = '/'+leader_robot+'/laser_controller/out'
-    #odom_frame = leader_robot + '_odom'
-    #map_frame = leader_robot + '_map'
-    #base_frame = leader_robot + '_base_footprint'
-    #slam_params_path = os.path.join(pkg_path,'config','mapper_params_online_async.yaml')
-
-    # Define the SLAM toolbox node
-    #slam_toolbox_node = Node(
-    #    package='slam_toolbox',executable='async_slam_toolbox_node',
-    #    name='slam_toolbox',output='screen',
-    #    parameters=[
-    #        slam_params_path,
-    #        {'scan_topic': scan_topic,'odom_frame': odom_frame,'map_frame': map_frame,
-    #        'base_frame': base_frame,'use_sim_time': True,}])
-
-    #ld.add_action(slam_toolbox_node) 
-
     return ld
-
 
     #colcon build --packages-select my_bot

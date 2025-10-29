@@ -34,12 +34,16 @@ setup(
                     
                     
                     'gazebo_to_odom = comp_pkg.gazebo_to_odom:main',
+                    'gazebo_to_odom_rl = comp_pkg.gazebo_to_odom_rl:main',
+
                     'laser_relay = comp_pkg.laser_relay:main',
 
                     'repub_kinect = comp_pkg.repub_kinect:main',
                     'make_timestamp_rgb_for_rtab_odom = comp_pkg.make_timestamp_rgb_for_rtab_odom:main',
+                    'make_timestamp_rgb_for_rtab_odom_sim = comp_pkg.make_timestamp_rgb_for_rtab_odom_sim:main',
 
                     'compute_closest_obstacle = comp_pkg.compute_closest_obstacle:main',
+                    'compute_closest_obstacle_rl = comp_pkg.compute_closest_obstacle_rl:main',
 
                     'catch_waypoints = comp_pkg.catch_waypoints:main',
 
@@ -48,6 +52,7 @@ setup(
                     'bag_recorder = comp_pkg.bag_recorder:main',
                     'bag_plotter = comp_pkg.bag_plotter:main',
                     'consensus_tester = comp_pkg.consensus_tester:main',
+                    'gazebo_reset_node = comp_pkg.gazebo_reset_node:main',
 
         ],
     },

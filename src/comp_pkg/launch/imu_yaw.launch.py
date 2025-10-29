@@ -13,17 +13,19 @@ def generate_launch_description():
 
     ld = LaunchDescription()
 
-
     for i in range(2):
         for j in range(2):
-            name='robot'+str(i)+'_'+str(j)
-            yaw_from_imu=Node(package='comp_pkg',
-            executable='imu_yaw_node',
-            name='imu_yaw_node',
-            parameters=[{'imu_topic': name}],
-            output='screen',)
+            if i==1 and j==1:
+                continue
+            else:
+                name='robot'+str(i)+'_'+str(j)
+                yaw_from_imu=Node(package='comp_pkg',
+                executable='imu_yaw_node',
+                name='imu_yaw_node',
+                parameters=[{'imu_topic': name}],
+                output='screen',)
 
-            ld.add_action(yaw_from_imu)
+                ld.add_action(yaw_from_imu)
 
     # Consensus Node (delayed by 5 seconds)
     consensus_node = TimerAction(
@@ -38,22 +40,6 @@ def generate_launch_description():
         ]
     )
     ld.add_action(consensus_node)
-
-
-    # Desired Velocity Publisher Node (delayed by 10 seconds total)
-    #des_publisher_node = TimerAction(
-    #   period=5.0,  # delay in seconds (IMU + consensus time)
-    #    actions=[
-    #        Node(
-    #            package='comp_pkg',
-    #            executable='pub_des_vel_node',
-    #            name='initialize_des_publisher',
-    #            output='screen',
-    #        )
-    #    ]
-    #)
-    #ld.add_action(des_publisher_node)
-
 
     return ld
 

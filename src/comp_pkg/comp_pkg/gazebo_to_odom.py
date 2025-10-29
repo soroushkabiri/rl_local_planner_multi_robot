@@ -1,3 +1,9 @@
+
+
+# this code uses link state topic from gazebo that it will
+#  be making problem for reinforcment learning training after every reset simulation
+
+
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
@@ -81,3 +87,124 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #!/usr/bin/env python3
+# import rclpy
+# from rclpy.node import Node
+# from gazebo_msgs.srv import GetEntityState
+# from nav_msgs.msg import Odometry
+# from geometry_msgs.msg import TransformStamped
+# from tf2_ros import TransformBroadcaster
+
+# class CartOdomPublisher(Node):
+#     def __init__(self):
+#         super().__init__('cart_odom_pub_entity')
+#         self.cart_entity_name = 'rect_obj::base_link'  # entity to track
+
+#         # Odometry publisher
+#         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
+
+#         # TF broadcaster
+#         self.tf_broadcaster = TransformBroadcaster(self)
+
+#         # Service client for /get_entity_state
+#         self.cli_get_entity_state = self.create_client(GetEntityState, '/get_entity_state')
+
+#         # Wait for service (non-blocking with logs)
+#         self.get_logger().info("Waiting for /get_entity_state service...")
+#         self.timer_wait_service = self.create_timer(1.0, self.wait_for_service_callback)
+
+#         # Query entity at 10 Hz
+#         self.timer_publish = self.create_timer(0.1, self.publish_odom)
+
+#         self.service_ready = False
+
+#     def wait_for_service_callback(self):
+#         if self.cli_get_entity_state.service_is_ready():
+#             self.service_ready = True
+#             self.get_logger().info("/get_entity_state service is ready")
+#             self.timer_wait_service.cancel()  # stop this timer
+#         else:
+#             self.get_logger().info("Still waiting for /get_entity_state service...")
+
+#     def publish_odom(self):
+#         if not self.service_ready:
+#             return  # skip until service is ready
+
+#         # Prepare request
+#         req = GetEntityState.Request()
+#         req.name = self.cart_entity_name
+#         req.reference_frame = 'world'
+
+#         # Call service asynchronously
+#         future = self.cli_get_entity_state.call_async(req)
+#         future.add_done_callback(self.handle_response)
+
+#     def handle_response(self, future):
+#         try:
+#             res = future.result()
+#         except Exception as e:
+#             self.get_logger().error(f"Service call failed: {e}")
+#             return
+
+#         if not res.success:
+#             self.get_logger().warn(f"Failed to get entity state for {self.cart_entity_name}")
+#             return
+
+#         # Extract pose and twist
+#         pose = res.state.pose
+#         twist = res.state.twist
+
+#         # Current ROS time
+#         stamp = self.get_clock().now().to_msg()
+
+#         # Publish Odometry
+#         odom = Odometry()
+#         odom.header.stamp = stamp
+#         odom.header.frame_id = 'odom'
+#         odom.child_frame_id = 'base_link'
+#         odom.pose.pose = pose
+#         odom.twist.twist = twist
+#         self.odom_pub.publish(odom)
+
+#         # Broadcast TF
+#         t = TransformStamped()
+#         t.header.stamp = stamp
+#         t.header.frame_id = 'odom'
+#         t.child_frame_id = 'base_link'
+#         t.transform.translation.x = pose.position.x
+#         t.transform.translation.y = pose.position.y
+#         t.transform.translation.z = pose.position.z
+#         t.transform.rotation = pose.orientation
+#         self.tf_broadcaster.sendTransform(t)
+
+
+# def main(args=None):
+#     rclpy.init(args=args)
+#     node = CartOdomPublisher()
+#     rclpy.spin(node)
+#     node.destroy_node()
+#     rclpy.shutdown()
+
+
+# if __name__ == '__main__':
+#     main()
