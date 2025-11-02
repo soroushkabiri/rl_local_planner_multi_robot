@@ -23,6 +23,7 @@ setup(
 
 
         'observation_states = rl_planner.observation_states:main',
+        'TD3 = rl_planner.TD3:main',
 
         ],
     },
