@@ -15,6 +15,8 @@ class ObservationState(Node):
         self.leader_teta = np.array([0.0], dtype=np.float32)  # yaw in radians
         self.obstacles = np.zeros((6, 2), dtype=np.float32)  # 6 obstacles, each [x, y]
         self.current_wp = np.zeros(2, dtype=np.float32)        # current waypoint [x, y]
+        self.last_wp = np.zeros(2, dtype=np.float32)        # last waypoint [x, y]
+
 
         # Publisher for aggregated observation
         self.obs_pub = self.create_publisher(Float32MultiArray, '/observation_state', 10)
@@ -23,6 +25,8 @@ class ObservationState(Node):
         self.create_subscription(Odometry, '/odom', self.odom_callback, 10)
         self.create_subscription(Float32, '/robot0_0/yaw_rad', self.yaw_callback, 10)
         self.create_subscription(PoseStamped, '/current_waypoint', self.current_wp_callback, 10)
+        self.create_subscription(PoseStamped, '/last_waypoint', self.last_wp_callback, 10)
+
 
         # Subscribe to 6 obstacle topics
         for i in range(6):
@@ -55,14 +59,24 @@ class ObservationState(Node):
             msg.pose.position.y
         ], dtype=np.float32)
 
+
+    def last_wp_callback(self, msg: PoseStamped):
+        """Store the last waypoint x, y."""
+        self.last_wp[:] = np.array([
+            msg.pose.position.x,
+            msg.pose.position.y
+        ], dtype=np.float32)
+
+
     def publish_observation(self):
         """Publish all observations as a single flattened Float32MultiArray."""
         obs_vector = np.concatenate([
-            self.current_wp,          # 2
+            #self.current_wp,          # 2
             self.rect_obj_pos,          # 2
             self.leader_teta,           # 1
-            self.obstacles.flatten()    # 6*2 = 12
-        ]).astype(np.float32)           # Total length = 15
+            self.obstacles.flatten(),    # 6*2 = 12
+            self.last_wp,          # 2
+        ]).astype(np.float32)           # Total length = 17 (without current waypoint)
         msg = Float32MultiArray()
         msg.data = obs_vector.tolist()
         self.obs_pub.publish(msg)

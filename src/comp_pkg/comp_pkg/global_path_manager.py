@@ -214,7 +214,13 @@ class GlobalPathManager(Node):
 
         # Publishers
         self.publisher_ = self.create_publisher(Path, '/global_path_nav2', 10)
+        
+        # downsampled path published for RL
+        self.RL_path_pub = self.create_publisher(Path, "/RL_path", 10)
+
         self.current_wp_pub = self.create_publisher(PoseStamped, '/current_waypoint', 10)
+        self.last_wp_pub = self.create_publisher(PoseStamped, '/last_waypoint', 10)
+
         self.current_wp_index_pub = self.create_publisher(Int32, '/current_waypoint_index', 10)
 
         # Subscribers
@@ -253,6 +259,12 @@ class GlobalPathManager(Node):
         # Downsample the path to self.number_of_waypoints (include last point)
         path = self.downsample_path(self.global_path, self.number_of_waypoints)
 
+
+        # publish the downsampled path for RL
+        path.header.stamp = self.get_clock().now().to_msg()
+        path.header.frame_id = "map"
+        self.RL_path_pub.publish(path)
+
         # Current robot position
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
@@ -276,7 +288,12 @@ class GlobalPathManager(Node):
         index_msg = Int32()
         index_msg.data = next_idx
 
+        # Publish last waypoint
+        last_wp = path.poses[-1]
+
+
         self.current_wp_pub.publish(current_wp)
+        self.last_wp_pub.publish(last_wp)
         self.current_wp_index_pub.publish(index_msg)
 
         self.get_logger().info(f"Current waypoint index: {closest_idx}/{len(path.poses)-1}, "

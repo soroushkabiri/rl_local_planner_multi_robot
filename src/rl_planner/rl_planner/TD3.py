@@ -13,18 +13,18 @@ from rclpy.node import Node
 from std_srvs.srv import Empty
 import time
 from geometry_msgs.msg import Twist
-
-
-
+from nav_msgs.msg import Path
+import math
+import threading
 
 class GazeboResetClient():
     def __init__(self, node):
         self.node = node
 
         # Create clients for Gazebo control services
-        self.cli_pause = self.create_client(Empty, '/pause_physics')
-        self.cli_unpause = self.create_client(Empty, '/unpause_physics')
-        self.cli_reset_sim = self.create_client(Empty, '/reset_simulation')
+        self.cli_pause = self.node.create_client(Empty, '/pause_physics')
+        self.cli_unpause = self.node.create_client(Empty, '/unpause_physics')
+        self.cli_reset_sim = self.node.create_client(Empty, '/reset_simulation')
 
         # Wait for services to be available
         for cli, name in [
@@ -33,28 +33,27 @@ class GazeboResetClient():
             (self.cli_reset_sim, '/reset_simulation')
         ]:
             while not cli.wait_for_service(timeout_sec=1.0):
-                self.get_logger().info(f'Waiting for {name} service...')
+                self.node.get_logger().info(f'Waiting for {name} service...')
 
         self.req = Empty.Request()
 
     def pause(self):
-        self.get_logger().info('Pausing physics...')
+        self.node.get_logger().info('Pausing physics...')
         future = self.cli_pause.call_async(self.req)
         rclpy.spin_until_future_complete(self.node, future)
-        self.get_logger().info('Physics paused.')
+        self.node.get_logger().info('Physics paused.')
 
     def unpause(self):
-        self.get_logger().info('Unpausing physics...')
+        self.node.get_logger().info('Unpausing physics...')
         future = self.cli_unpause.call_async(self.req)
         rclpy.spin_until_future_complete(self.node, future)
-        self.get_logger().info('Physics unpaused.')
+        self.node.get_logger().info('Physics unpaused.')
 
     def reset_simulation(self):
-        self.get_logger().info('Resetting full simulation (time + world)...')
+        self.node.get_logger().info('Resetting full simulation (time + world)...')
         future = self.cli_reset_sim.call_async(self.req)
         rclpy.spin_until_future_complete(self.node, future)
-        self.get_logger().info('Simulation reset done!')
-
+        self.node.get_logger().info('Simulation reset done!')
 
 class ReplayBuffer:
     def __init__(self, max_size):
@@ -102,10 +101,6 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-
-
-
-
 class Actor(Model):
     def __init__(self, action_dim, action_max, hidden_sizes=(300,)):
         super().__init__()
@@ -120,7 +115,6 @@ class Actor(Model):
             x = lyr(x)
         return self.output_layer(x) * self.action_max
 
-
 class Critic(Model):
     def __init__(self, hidden_sizes=(300,)):
         super().__init__()
@@ -134,12 +128,11 @@ class Critic(Model):
             x = lyr(x)
         return tf.squeeze(self.output_layer(x), axis=1)
 
-
 # ROS2 TD3 AGENT NODE
 class TD3AgentNode(Node):
-    def __init__(self, hidden_sizes=(300,), replay_size=int(1e4), mu_lr=1e-3, q_lr=1e-3,
+    def __init__(self, hidden_sizes=(300,), replay_size=int(1e2), mu_lr=1e-3, q_lr=1e-3,
         gamma=0.99, decay=0.995, batch_size=100, action_noise=0.1, target_noise=0.2,
-        noise_clip=0.5, policy_delay=2,max_episode_length=200):
+        noise_clip=0.5, policy_delay=2,max_episode_length=400):
         super().__init__("td3_agent")
 
         # Gazebo reset helper
@@ -160,13 +153,17 @@ class TD3AgentNode(Node):
         self.last_obs = None
         
         #extract environment dimensions
-        self.num_states = 17
+        self.num_states = 19
         self.num_actions = 2  # linear and angular velocity
         self.action_max=np.array([self.max_v_leader, self.max_w_leader], dtype=np.float32)  # max linear and angular velocity
 
         # Subscribe to observation topic
         self.create_subscription(Float32MultiArray, '/observation_state', self.observation_callback, 10)
-       
+        self.create_subscription(Path, "/RL_path", self.path_callback, 10)
+        # Save downsampled waypoints
+        self.waypoints = []  # list of (x, y)
+        self.current_wp_idx = 0
+
         # Publish to robot cmd_vel
         self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_fuzzy", 10)
        
@@ -204,6 +201,59 @@ class TD3AgentNode(Node):
         # Initialize step counter for delayed policy updates
         self.total_it = 0
 
+    #catch the whole waypoints
+    def path_callback(self, msg: Path):
+        """Store downsampled path and its order."""
+        self.waypoints = [(pose.pose.position.x, pose.pose.position.y) for pose in msg.poses]
+        #self.get_logger().info(f"Saved {len(self.waypoints)} downsampled waypoints.")
+
+
+    def update_waypoint(self,uncomplete_state):
+        rect_obj_x, rect_obj_y= uncomplete_state[0], uncomplete_state[1]
+        current_wp=self.waypoints[self.current_wp_idx]
+        distance=math.hypot(current_wp[0]-rect_obj_x,current_wp[1]-rect_obj_y)
+
+        # check if the rect obj distance to current waypoint is closer than 0.3 meter then go to the next waypoint
+        if distance<=0.3:
+            self.current_wp_idx=min(self.current_wp_idx+1,len(self.waypoints)-1 )
+
+        return np.array(self.waypoints[self.current_wp_idx], dtype=np.float32)
+
+
+    def reward_calculator(self,uncomplete_states,current_wp):
+
+        reward=0
+
+        rect_obj_x, rect_obj_y=uncomplete_states[0],uncomplete_states[1]
+        final_goal_x, final_goal_y=uncomplete_states[-2], uncomplete_states[-1]
+        closest_obstacle_x, closest_obstacle_y=uncomplete_states[3], uncomplete_states[4]
+
+        distance_to_goal=math.hypot(rect_obj_x-final_goal_x, rect_obj_y-final_goal_y)
+        distance_to_obstacle=math.hypot(rect_obj_x-closest_obstacle_x,rect_obj_y-closest_obstacle_y)
+        distance_to_waypoint=math.hypot(rect_obj_x-current_wp[0],rect_obj_y-current_wp[1])
+                
+        #self.get_logger().info(f"next_state_uncomplete in reward calculator is: {uncomplete_states}")
+
+        self.get_logger().info(f"distance to obstacle: {distance_to_obstacle}")
+
+        if distance_to_goal <=0.3:
+            reward+=20
+        if distance_to_obstacle<=1.2:
+            reward-=20
+        if distance_to_waypoint<=0.3:
+            reward+=1
+        # negative reward for every time step
+        reward-=0.03
+        # progress reward
+        reward += -(distance_to_waypoint) * 0.05
+
+        if distance_to_goal<=0.3 or distance_to_obstacle<=1.2:
+            Termination=True
+        else :
+            Termination=False
+
+        return reward, Termination
+
     # publish the action of rl agent
     def send_action_to_robot(self, action):
         # action = [v, w]
@@ -212,14 +262,13 @@ class TD3AgentNode(Node):
         msg.angular.z = float(action[1])
         self.cmd_pub.publish(msg)
 
-
     # function for reseting environment at start of every episode
     def reset_environment(self):
         self.get_logger().info("Resetting environment...")
         self.gz_reset.pause()
         time.sleep(4)
         self.gz_reset.reset_simulation()
-        time.sleep(1)
+        time.sleep(3)
         self.gz_reset.unpause()
         time.sleep(2)
 
@@ -312,16 +361,32 @@ class TD3AgentNode(Node):
         critic2_losses = []
         actor_losses = []
 
-        print(f"Using random actions for the initial {self.replay_buffer.max_size} steps...")
+        self.get_logger().info(f"Using random actions for the initial {self.replay_buffer.max_size} steps...")
 
         for episode in range(num_episodes):
+            
+            self.current_wp_idx = 0
+
             self.reset_environment()
-            time.sleep(0.1)
-            state, episode_return, episode_length=self.last_obs, 0, 0
+            self.send_action_to_robot(np.array([0,0]))
+
+            time.sleep(8.0)
+
+            state_uncomplete=self.last_obs
+            current_waypoint=self.update_waypoint(state_uncomplete)
+            state = np.concatenate([current_waypoint, state_uncomplete], axis=0)  # shape (19,)
+            episode_return, episode_length=0, 0
+            
             #state, episode_return, episode_length = self.env.reset()[0], 0, 0
             done = False
 
             while not (done or episode_length == self.max_episode_length):
+                
+                rclpy.spin_once(self)  # **keep callbacks alive**
+
+                
+                self.get_logger().info(f"episode_length  is {episode_length}")
+
                 # Use agent's actions only after buffer has enough samples
                 if len(self.replay_buffer) >= self.replay_buffer.max_size: #self.batch_size:
                     action = self.get_action(state, self.action_noise)
@@ -329,24 +394,31 @@ class TD3AgentNode(Node):
                     #action = self.env.action_space.sample()
                     action = np.random.uniform(low=-self.action_max, high=self.action_max)
 
-                time.sleep(0.1)
+                time.sleep(0.01)
 
-                
                 # Take action in environment
                 self.send_action_to_robot(action)
                 # wait till the action implemented on environment
                 time.sleep(0.1)
-                # read the state after implementing action
-                next_state=self.last_obs
+                # read the uncomplete state after implementing action to calculate reward
+                next_state_uncomplete=self.last_obs
                 # calculate reward 
+                reward ,done=self.reward_calculator(next_state_uncomplete,current_waypoint)
+                #self.get_logger().info(f"next_state_uncomplete in main is: {next_state_uncomplete}")
 
+                # find the new waypoint
+                current_waypoint=self.update_waypoint(next_state_uncomplete)
+                # complete state (with the waypoint)
+                next_state=np.concatenate([current_waypoint, next_state_uncomplete], axis=0)  # shape (17,)
 
-                next_state, reward, done, _, _ = self.env.step(action)
-                
-                
-                
+                #next_state, reward, done, _, _ = self.env.step(action)
                 
                 episode_return += reward
+
+                self.get_logger().info(f"return is {episode_return}")
+                self.get_logger().info(f"done is {done}")
+
+
                 episode_length += 1
                 
                 # Store transition
@@ -354,7 +426,8 @@ class TD3AgentNode(Node):
                 self.replay_buffer.store(state, action, reward, next_state, done_store)
                 
                 if len(self.replay_buffer) == self.replay_buffer.max_size-1: #self.batch_size:
-                    print(f"Memory full. Performing agent actions from now on.")
+                    self.get_logger().info("Memory full. Performing agent actions from now on.")
+
                 
                 # Update state
                 state = next_state
@@ -368,19 +441,21 @@ class TD3AgentNode(Node):
                     actor_losses.append(actor_loss.numpy())
                     self.total_it += 1
             
+
+                            
             if (episode + 1) % 10 == 0:
-                print(f"Episode: {episode + 1:4d} | "
-                      f"Score: {int(episode_return):5d} | "
-                      f"Memory: {len(self.replay_buffer):5d} | "
-                      f"Actor Loss: {actor_loss.numpy():.2f} | "
-                      f"Critic 1 Loss: {critic1_loss.numpy():.2f} | "
-                      f"Critic 2 Loss: {critic2_loss.numpy():.2f}")
+                self.get_logger().info(
+                    f"Episode: {episode + 1:4d} | "
+                    f"Score: {int(episode_return):5d} | "
+                    f"Memory: {len(self.replay_buffer):5d} | "
+                    f"Actor Loss: {actor_loss.numpy():.2f} | "
+                    f"Critic 1 Loss: {critic1_loss.numpy():.2f} | "
+                    f"Critic 2 Loss: {critic2_loss.numpy():.2f}"
+    )
                 
             returns.append(episode_return)
         
         return returns, critic1_losses, critic2_losses, actor_losses
-
-
 
     def observation_callback(self, msg):
         """Store latest observation — do NOT start RL here."""
@@ -390,10 +465,13 @@ class TD3AgentNode(Node):
         #self.get_logger().info(f"Received observation of shape: {self.last_obs.shape}")
         #self.get_logger().info(f" shape: {self.num_states}")
 
+
+
+
 def main():
     rclpy.init()
     node = TD3AgentNode()
-    rclpy.spin(node)
+    node.train(1000)
     node.destroy_node()
     rclpy.shutdown()
 
