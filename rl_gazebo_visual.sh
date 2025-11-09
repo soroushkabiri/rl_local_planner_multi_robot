@@ -10,17 +10,19 @@ tmux new-session -d -s ros_sim1 "./1_launch.sh" \; \
 split-window -v "sleep 30; ./2_launch.sh" \; \
 split-window -h "sleep 50; ./3_launch.sh" \; \
 split-window -v "sleep 50; ./4_launch_rl.sh" \; \
-split-window -h "sleep 52; ./10_launch_rl.sh" \; \
+split-window -h "sleep 51; ./10_launch_rl.sh" \; \
 select-layout tiled
 
 #split-window -v "sleep 60; ./5_launch.sh" \; \
 #split-window -h "sleep 70; ./6_launch.sh" \; \
 
 # Second tmux session
-tmux new-session -d -s ros_sim2 "sleep 53; " \; \
-split-window -h "sleep 55; ./9_launch.sh" \; \
+tmux new-session -d -s ros_sim2 "sleep 51; " \; \
+split-window -h "sleep 52; ./9_rl_launch.sh" \; \
 split-window -v "sleep 65; ./11_launch.sh" \; \
-split-window -h "sleep 67; ./12_launch.sh" \; \
+split-window -h "sleep 53; ./14_rl_launch.sh" \; \
+split-window -v "sleep 54; ./12_launch.sh" \; \
+split-window -h "sleep 55; ./15_rl_launch.sh" \; \
 select-layout tiled
 
 #split-window -v "sleep 85; ./8_launch.sh" \; \

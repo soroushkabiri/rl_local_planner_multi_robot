@@ -31,7 +31,8 @@ setup(
                     'test_node = comp_pkg.test_node:main',
                     'state_consensus_node = comp_pkg.state_consensus_node:main',
                     'pub_des_vel_node = comp_pkg.pub_des_vel_node:main',
-                    
+                    'pub_des_vel_node_rl = comp_pkg.pub_des_vel_node_rl:main',
+
                     
                     'gazebo_to_odom = comp_pkg.gazebo_to_odom:main',
                     'gazebo_to_odom_rl = comp_pkg.gazebo_to_odom_rl:main',

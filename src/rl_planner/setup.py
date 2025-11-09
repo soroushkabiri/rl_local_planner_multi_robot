@@ -23,6 +23,9 @@ setup(
 
 
         'observation_states = rl_planner.observation_states:main',
+        'TD3 = rl_planner.TD3:main',
+        'td3_actor_visualizer = rl_planner.td3_actor_visualizer:main',
+
 
         ],
     },
