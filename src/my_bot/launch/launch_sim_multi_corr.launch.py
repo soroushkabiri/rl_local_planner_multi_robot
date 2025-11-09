@@ -40,7 +40,7 @@ def generate_launch_description():
                    launch_arguments={'gui-client-plugin': ''}.items() )
 
     ld.add_action(gzserver_cmd)
-    ld.add_action(gzclient_cmd)
+    #ld.add_action(gzclient_cmd)
     
     # now inserting rectangular object
     robot_description_rect = Command(['xacro ', xacro_file_rect, ' prefix:=', 'rect_obj' + '_'])

@@ -18,10 +18,11 @@ select-layout tiled
 
 # Second tmux session
 tmux new-session -d -s ros_sim2 "sleep 51; " \; \
-split-window -h "sleep 52; ./9_launch.sh" \; \
+split-window -h "sleep 52; ./9_rl_launch.sh" \; \
 split-window -v "sleep 65; ./11_launch.sh" \; \
 split-window -h "sleep 53; ./14_rl_launch.sh" \; \
 split-window -v "sleep 54; ./12_launch.sh" \; \
+split-window -h "sleep 55; ./15_rl_launch.sh" \; \
 select-layout tiled
 
 #split-window -v "sleep 85; ./8_launch.sh" \; \

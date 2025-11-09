@@ -14,6 +14,7 @@ class ObservationState(Node):
         self.rect_obj_pos = np.zeros(2, dtype=np.float32)  # x, y from odom
         self.leader_teta = np.array([0.0], dtype=np.float32)  # yaw in radians
         self.obstacles = np.zeros((6, 2), dtype=np.float32)  # 6 obstacles, each [x, y]
+        self.closest_obstacle=np.zeros(2, dtype=np.float32)
         self.current_wp = np.zeros(2, dtype=np.float32)        # current waypoint [x, y]
         self.last_wp = np.zeros(2, dtype=np.float32)        # last waypoint [x, y]
 
@@ -26,6 +27,7 @@ class ObservationState(Node):
         self.create_subscription(Float32, '/robot0_0/yaw_rad', self.yaw_callback, 10)
         self.create_subscription(PoseStamped, '/current_waypoint', self.current_wp_callback, 10)
         self.create_subscription(PoseStamped, '/last_waypoint', self.last_wp_callback, 10)
+        self.create_subscription(Point, '/closest_obstacle_in_range', self.closest_callback, 10)
 
 
         # Subscribe to 6 obstacle topics
@@ -60,6 +62,10 @@ class ObservationState(Node):
         ], dtype=np.float32)
 
 
+    def closest_callback(self, msg: Point):
+        self.closest_obstacle[:] = np.array([msg.x, msg.y], dtype=np.float32)
+
+
     def last_wp_callback(self, msg: PoseStamped):
         """Store the last waypoint x, y."""
         self.last_wp[:] = np.array([
@@ -74,9 +80,10 @@ class ObservationState(Node):
             #self.current_wp,          # 2
             self.rect_obj_pos,          # 2
             self.leader_teta,           # 1
-            self.obstacles.flatten(),    # 6*2 = 12
+            #self.obstacles.flatten(),    # 6*2 = 12
+            self.closest_obstacle,      # 2
             self.last_wp,          # 2
-        ]).astype(np.float32)           # Total length = 17 (without current waypoint)
+        ]).astype(np.float32)           # Total length = 7 (without current waypoint)
         msg = Float32MultiArray()
         msg.data = obs_vector.tolist()
         self.obs_pub.publish(msg)

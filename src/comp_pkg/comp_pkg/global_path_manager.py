@@ -210,7 +210,7 @@ class GlobalPathManager(Node):
         self.path_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/my_map_3_global_path.yaml')
         self.global_path = None
         self.latched = False
-        self.number_of_waypoints = 10  # <-- configurable number of waypoints to use
+        self.number_of_waypoints = 20  # <-- configurable number of waypoints to use
 
         # Publishers
         self.publisher_ = self.create_publisher(Path, '/global_path_nav2', 10)
