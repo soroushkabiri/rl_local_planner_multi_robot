@@ -11,6 +11,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/imu_yaw.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/imu_yaw_single.launch.py']),
+
         #('share/' + package_name + '/launch', ['launch/combined.launch.py']),
         ('share/' + package_name + '/launch', ['launch/velocity_publishing.launch.py']),
         ('share/' + package_name + '/launch', ['launch/nodes_before_nav2_slamtoolbox.launch.py']),
@@ -36,6 +38,8 @@ setup(
                     
                     'gazebo_to_odom = comp_pkg.gazebo_to_odom:main',
                     'gazebo_to_odom_rl = comp_pkg.gazebo_to_odom_rl:main',
+                    'gazebo_to_odom_rl_single = comp_pkg.gazebo_to_odom_rl_single:main',
+
 
                     'laser_relay = comp_pkg.laser_relay:main',
 
@@ -45,6 +49,7 @@ setup(
 
                     'compute_closest_obstacle = comp_pkg.compute_closest_obstacle:main',
                     'compute_closest_obstacle_rl = comp_pkg.compute_closest_obstacle_rl:main',
+                    'compute_closest_obstacle_rl_single = comp_pkg.compute_closest_obstacle_rl_single:main',
 
                     'catch_waypoints = comp_pkg.catch_waypoints:main',
 
