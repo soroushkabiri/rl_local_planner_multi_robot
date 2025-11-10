@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="my_robot">
+    <xacro:arg name="prefix" default="" />
+
+    <xacro:include filename="single_robot.xacro"/>
+    <xacro:include filename="gazebo_control_corr.xacro"/>
+    <!--xacro:include filename="ros2_control_arm.xacro"/-->
+    <!--xacro:include filename="lidar_corr.xacro"/-->
+    <!--xacro:include filename="camera_corr.xacro"/-->
+    <xacro:include filename="imu_corr.xacro"/>
+
+
+
+    <xacro:diffbot prefix="$(arg prefix)"/>
+    <xacro:diffbot_gazebo_controller prefix="$(arg prefix)"/>
+    <!--xacro:arm_controller prefix="$(arg prefix)"/-->
+    <!--xacro:lidar_module prefix="$(arg prefix)"/-->
+    <!--xacro:camera_module prefix="$(arg prefix)"/-->
+    <xacro:imu_module prefix="$(arg prefix)"/>
+
+
+</robot>

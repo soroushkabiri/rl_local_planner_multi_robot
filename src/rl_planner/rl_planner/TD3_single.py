@@ -210,14 +210,14 @@ class Critic(Model):
 
 # ROS2 TD3 AGENT NODE
 class TD3AgentNode(Node):
-    def __init__(self, hidden_sizes=(256,256,64,), replay_size=int(5e2), mu_lr=1e-3, q_lr=1e-3,
+    def __init__(self, hidden_sizes=(256,256,64,), replay_size=int(1e3), mu_lr=1e-3, q_lr=1e-3,
         gamma=0.99, decay=0.995, batch_size=32, action_noise=0.1, target_noise=0.2,
         noise_clip=0.5, policy_delay=2,max_episode_length=500):
         super().__init__("td3_agent")
 
 
         # Define directory for saving training history
-        self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history')
+        self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history_single')
         os.makedirs(self.history_dir, exist_ok=True)
 
         # Define full path for training log
@@ -229,7 +229,7 @@ class TD3AgentNode(Node):
 
 
         # save network weights
-        self.save_dir = os.path.expanduser("~/ros_for_project_1/articulate_robot/td3_weights")
+        self.save_dir = os.path.expanduser("~/ros_for_project_1/articulate_robot/td3_weights_single")
         os.makedirs(self.save_dir, exist_ok=True)
 
         # Continue training flag
@@ -240,10 +240,6 @@ class TD3AgentNode(Node):
 
         # Gazebo reset helper
         self.gz_reset = GazeboResetClient(self)
-
-        # Publisher to trigger initial alignment
-        self.initial_align_pub = self.create_publisher(Bool, '/rl_initial_alignment', 10)
-
 
         self.gamma = gamma
         self.decay = decay
@@ -273,9 +269,6 @@ class TD3AgentNode(Node):
         # Publish to robot cmd_vel
         self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_fuzzy", 10)
        
-        # Publisher for linear velocity
-        self.linear_velocity_pub = self.create_publisher(Float32, 'linear_velocity_rl', 10)
-
         # Create networks
         self.actor = Actor(self.num_actions, self.action_max, hidden_sizes)
         self.critic1 = Critic(hidden_sizes)
@@ -334,22 +327,6 @@ class TD3AgentNode(Node):
         
         # Initialize step counter for delayed policy updates
         self.total_it = 0
-
-    def trigger_initial_alignment(self):
-        # Publish True → start alignment
-        msg = Bool()
-        msg.data = True
-        self.initial_align_pub.publish(msg)
-        self.get_logger().info("🔄 Initial alignment triggered...")
-
-        # Sleep 8 seconds to allow robot to turn
-        time.sleep(8.0)
-
-        # Publish False → stop alignment
-        msg.data = False
-        self.initial_align_pub.publish(msg)
-        self.get_logger().info("✅ Initial alignment completed.")
-
 
     def save_weights(self, episode):
         episode_dir = os.path.join(self.save_dir, f"episode_{episode}")
@@ -442,24 +419,12 @@ class TD3AgentNode(Node):
     def send_action_to_robot(self, action):
         # action = [v, w]
         msg = Twist()
-        if float(action[0])>0:
-            msg.linear.x = float(action[0])
-        else:
-            msg.linear.x=0.0       
+        #if float(action[0])>0:
+        msg.linear.x = float(action[0])
+        #else:
+        #    msg.linear.x=0.0       
         msg.angular.z = float(action[1])
         self.cmd_pub.publish(msg)
-
-
-
-    def send_linear_vel_to_followers(self, action):
-        # action = [v, w]
-        msg = Float32()
-        
-        if float(action[0])>0:
-            msg.data=float(action[0])
-        else:
-            msg.data=0.0
-        self.linear_velocity_pub.publish(msg)
 
 
     # function for reseting environment at start of every episode
@@ -589,8 +554,7 @@ class TD3AgentNode(Node):
             self.reset_environment()
             self.send_action_to_robot(np.array([0,0]))
             # Run automatic alignment only once per episode
-            self.trigger_initial_alignment()
-            time.sleep(8.0)
+            time.sleep(3.0)
             # Spin a few times to ensure callbacks update self.last_obs
             for _ in range(5):
                 rclpy.spin_once(self, timeout_sec=0.01)
@@ -637,11 +601,9 @@ class TD3AgentNode(Node):
 
                 # Take action in environment
                 self.send_action_to_robot(action)
-                self.send_linear_vel_to_followers(action)
                 # wait till the action implemented on environment
-                time.sleep(0.2)
+                time.sleep(0.1)
                 self.send_action_to_robot(np.array([0,0]))
-                self.send_linear_vel_to_followers(np.array([0,0]))
 
                 # read the uncomplete state after implementing action to calculate reward
 
