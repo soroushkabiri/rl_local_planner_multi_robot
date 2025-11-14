@@ -25,11 +25,15 @@ def normalize_angle(angle):
     """Normalize angle to [-pi, pi]."""
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
-def clip_normalize_distance(dist, max_range=1.2):
+def clip_normalize_distance_to_goal(dist, max_range=15.0):
     """Clip distance to max_range and normalize to [0,1]."""
     return min(dist / max_range, 1.0)
 
-def make_relative_state(state_uncomplete, current_wp):
+def clip_normalize_distance(dist, max_range=1.0):
+    """Clip distance to max_range and normalize to [0,1]."""
+    return min(dist / max_range, 1.0)
+
+def make_relative_state(state_uncomplete, current_wp,prev_action):
     """
     Convert raw observation vector into relative distances & angles.
     state_uncomplete = [rect_x, rect_y, leader_theta, closest_obs_x, closest_obs_y, goal_x, goal_y]
@@ -41,6 +45,14 @@ def make_relative_state(state_uncomplete, current_wp):
     closest_obs_x, closest_obs_y        = state_uncomplete[3], state_uncomplete[4]
     goal_x, goal_y = state_uncomplete[-2], state_uncomplete[-1]
     wp_x, wp_y      = current_wp[0], current_wp[1]
+    v, w = prev_action[0], prev_action[1]
+
+
+    # Distance to final goal
+    dx_to_goal = goal_x - rect_x
+    dy_to_goal = goal_y - rect_y
+    dist_to_goal = np.sqrt(dx_to_goal**2 + dy_to_goal**2)
+    dist_to_goal_norm = clip_normalize_distance_to_goal(dist_to_goal)
 
     # Distance to waypoint
     dx_wp = wp_x - rect_x
@@ -52,42 +64,49 @@ def make_relative_state(state_uncomplete, current_wp):
     angle_to_wp_global = math.atan2(dy_wp, dx_wp)
     # Relative heading in robot frame
     angle_to_wp = normalize_angle(angle_to_wp_global - leader_theta)
-    angle_to_wp_norm = angle_to_wp / np.pi  # maps [-pi,pi] → [-1,1]
+    sin_angle_to_wp=math.sin(angle_to_wp)
+    cos_angle_to_wp=math.cos(angle_to_wp)
+    #angle_to_wp_norm = angle_to_wp / np.pi  # maps [-pi,pi] → [-1,1]
 
     # Distance to closest obstacle
     dx_obs = closest_obs_x - rect_x
     dy_obs = closest_obs_y - rect_y
     dist_to_obs = np.sqrt(dx_obs**2 + dy_obs**2)
     # Improved normalized distance (importance weighting)
-    min_dist, max_dist = 1.35, 1.5
+    min_dist, max_dist = 1.35, 1.6
     improved_dist_to_obs = (max_dist - dist_to_obs) / (max_dist - min_dist)
     improved_dist_to_obs = np.clip(improved_dist_to_obs, 0.0, 1.0)
 
     # Angle to obstacle in world
     angle_to_obs_global = math.atan2(dy_obs, dx_obs)
-
     # Relative heading
     angle_to_obs = normalize_angle(angle_to_obs_global - leader_theta)
-
+    sin_angle_to_obs=math.sin(angle_to_obs)
+    cos_angle_to_obs=math.cos(angle_to_obs)
     # Normalize obstacle distance and angle
     #dist_to_obs_norm = clip_normalize_distance(dist_to_obs)
-    angle_to_obs_norm = angle_to_obs / np.pi
+    #angle_to_obs_norm = angle_to_obs / np.pi
 
     # Leader theta normalized
     leader_theta_norm = normalize_angle(leader_theta) / np.pi
 
     # Final RL state vector
     rl_state = np.array([
+        dist_to_goal_norm,
         dist_to_wp_norm,
-        angle_to_wp_norm,
+        sin_angle_to_wp,
+        cos_angle_to_wp,
+        #angle_to_wp_norm,
         improved_dist_to_obs,
-        angle_to_obs_norm,
-        #leader_theta_norm
+        sin_angle_to_obs,
+        cos_angle_to_obs,
+        #angle_to_obs_norm,
+        #leader_theta_norm,
+        v,
+        w,
     ], dtype=np.float32)
 
     return rl_state
-
-
 
 
 class GazeboResetClient():
@@ -175,7 +194,7 @@ class ReplayBuffer:
         return len(self.buffer)
 
 class Actor(Model):
-    def __init__(self, action_dim, action_max, hidden_sizes=(256,256,64,)):
+    def __init__(self, action_dim, action_max, hidden_sizes=(256,128,64,)):
         super().__init__()
         self.action_max = tf.constant(action_max, dtype=tf.float32)  # shape (2,)
 
@@ -194,7 +213,7 @@ class Actor(Model):
 
 
 class Critic(Model):
-    def __init__(self, hidden_sizes=(256,256,64,)):
+    def __init__(self, hidden_sizes=(256,128,64,)):
         super().__init__()
         self.hidden_layers = [layers.Dense(h, activation='relu') for h in hidden_sizes]
         self.output_layer = layers.Dense(1)
@@ -210,12 +229,11 @@ class Critic(Model):
 
 # ROS2 TD3 AGENT NODE
 class TD3AgentNode(Node):
-    def __init__(self, hidden_sizes=(256,256,64,), replay_size=int(1e3), mu_lr=1e-3, q_lr=1e-3,
-        gamma=0.99, decay=0.995, batch_size=32, action_noise=0.1, target_noise=0.2,
-        noise_clip=0.5, policy_delay=2,max_episode_length=500):
+    def __init__(self, hidden_sizes=(256,128,64,), replay_size=int(5e3), mu_lr=1e-3, q_lr=1e-3,
+        gamma=0.99, decay=0.995, batch_size=64, action_noise=0.1, target_noise=0.2,
+        noise_clip=0.5, policy_delay=2,max_episode_length=1500):
         super().__init__("td3_agent")
-
-
+        
         # Define directory for saving training history
         self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history_single')
         os.makedirs(self.history_dir, exist_ok=True)
@@ -253,7 +271,7 @@ class TD3AgentNode(Node):
         self.last_obs = None
         
         #extract environment dimensions
-        self.num_states = 4
+        self.num_states = 9
         self.num_actions = 2  # linear and angular velocity
         self.max_v_leader=0.15
         self.max_w_leader=0.3
@@ -386,7 +404,7 @@ class TD3AgentNode(Node):
         heading_error = (heading_error + math.pi) % (2 * math.pi) - math.pi
         
         # stronger penalty for large angular error
-        if abs(heading_error)>0.5:
+        if abs(heading_error)>1.0:
             reward -= 0.1 * abs(heading_error)
 
         #if distance_to_goal <=0.3:
@@ -435,7 +453,7 @@ class TD3AgentNode(Node):
         self.gz_reset.reset_simulation()
         time.sleep(3)
         self.gz_reset.unpause()
-        time.sleep(2)
+        time.sleep(3)
 
     def get_action(self, s, noise_scale):
         a = self.actor(tf.convert_to_tensor(s.reshape(1,-1), dtype=tf.float32))
@@ -544,7 +562,6 @@ class TD3AgentNode(Node):
         critic1_losses = []
         critic2_losses = []
         actor_losses = []
-
         self.get_logger().info(f"Using random actions for the initial {self.replay_buffer.max_size} steps...")
 
         for episode in range(num_episodes):
@@ -554,7 +571,7 @@ class TD3AgentNode(Node):
             self.reset_environment()
             self.send_action_to_robot(np.array([0,0]))
             # Run automatic alignment only once per episode
-            time.sleep(3.0)
+            time.sleep(4.0)
             # Spin a few times to ensure callbacks update self.last_obs
             for _ in range(5):
                 rclpy.spin_once(self, timeout_sec=0.01)
@@ -563,8 +580,8 @@ class TD3AgentNode(Node):
             state_uncomplete=self.last_obs
             current_waypoint, wp_changed=self.update_waypoint(state_uncomplete)
             #state_reward = np.concatenate([current_waypoint, state_uncomplete], axis=0)  # shape (19,)
-            
-            state_rl = make_relative_state(state_uncomplete, current_waypoint)
+            prev_action=np.array([0,0])
+            state_rl = make_relative_state(state_uncomplete, current_waypoint,prev_action)
             
             self.get_logger().info(f"new_states: {state_rl}, its shape is: {state_rl.shape}")
 
@@ -577,11 +594,8 @@ class TD3AgentNode(Node):
                 state_uncomplete[0] - current_waypoint[0],
                 state_uncomplete[1] - current_waypoint[1])
 
-
-
             # ---- Per-episode temporary storage for logging ----
             episode_logs = []  # List of dicts to store each step for this episode
-
 
             while not (done or episode_length == self.max_episode_length):
                 
@@ -599,6 +613,8 @@ class TD3AgentNode(Node):
                 for _ in range(3):
                     rclpy.spin_once(self, timeout_sec=0.01)
 
+                #save previous action to use later in states
+                prev_action=action
                 # Take action in environment
                 self.send_action_to_robot(action)
                 # wait till the action implemented on environment
@@ -627,7 +643,7 @@ class TD3AgentNode(Node):
                 # complete state (with the waypoint)
                 #next_state_reward=np.concatenate([current_waypoint, next_state_uncomplete], axis=0)  # shape (17,)
             
-                next_state_rl = make_relative_state(next_state_uncomplete, current_waypoint)
+                next_state_rl = make_relative_state(next_state_uncomplete, current_waypoint,prev_action)
                 self.get_logger().info(f"states: {next_state_rl}")
                 episode_return += reward
                 self.get_logger().info(f"return is {episode_return}")
@@ -669,10 +685,33 @@ class TD3AgentNode(Node):
                 #self.get_logger().info(f" actor_losses length: {len(actor_losses)} ")
 
 
+            # # ---- End of episode: save all step logs for this episode at once ----
+            # if episode_logs:
+            #     self.training_history = pd.concat([self.training_history, pd.DataFrame(episode_logs)], ignore_index=True)
+            #     self.training_history.to_excel(self.history_file, index=False)
+
+
+
             # ---- End of episode: save all step logs for this episode at once ----
             if episode_logs:
                 self.training_history = pd.concat([self.training_history, pd.DataFrame(episode_logs)], ignore_index=True)
-                self.training_history.to_excel(self.history_file, index=False)
+
+            # ---- Save every 100 episodes in a separate file ----
+            if (episode + 1) % 50 == 0 or (episode + 1) == num_episodes:
+                start_ep = episode - (episode % 50) + 1
+                end_ep = episode + 1
+                history_file_chunk = os.path.join(
+                    self.history_dir,
+                    f"td3_training_history_episodes_{start_ep}-{end_ep}.xlsx"
+                )
+                self.training_history.to_excel(history_file_chunk, index=False)
+                self.get_logger().info(f"Saved training history: {history_file_chunk}")
+
+                # Clear in-memory DataFrame for the next 100 episodes
+                self.training_history = pd.DataFrame(columns=self.history_columns)
+
+
+
 
 
 
