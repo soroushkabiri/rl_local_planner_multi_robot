@@ -147,51 +147,51 @@ class GazeboResetClient():
         rclpy.spin_until_future_complete(self.node, future)
         self.node.get_logger().info('Simulation reset done!')
 
-class ReplayBuffer:
-    def __init__(self, max_size):
-        self.buffer = deque(maxlen=max_size)
-        self.max_size = max_size
+# class ReplayBuffer:
+#     def __init__(self, max_size):
+#         self.buffer = deque(maxlen=max_size)
+#         self.max_size = max_size
 
-    def store(self, state, action, reward, next_state, done):
-        # Convert everything to float32 when storing
-        state = np.array(state, dtype=np.float32)
-        action = np.array(action, dtype=np.float32)
-        reward = np.float32(reward)  # Convert scalar to float32
-        next_state = np.array(next_state, dtype=np.float32)
-        done = np.float32(done)  # Convert boolean to float32
+#     def store(self, state, action, reward, next_state, done):
+#         # Convert everything to float32 when storing
+#         state = np.array(state, dtype=np.float32)
+#         action = np.array(action, dtype=np.float32)
+#         reward = np.float32(reward)  # Convert scalar to float32
+#         next_state = np.array(next_state, dtype=np.float32)
+#         done = np.float32(done)  # Convert boolean to float32
         
-        experience = (state, action, reward, next_state, done)
-        self.buffer.append(experience)
+#         experience = (state, action, reward, next_state, done)
+#         self.buffer.append(experience)
 
-    def sample_batch(self, batch_size):
-        if batch_size > len(self.buffer):
-            batch_size = len(self.buffer)
+#     def sample_batch(self, batch_size):
+#         if batch_size > len(self.buffer):
+#             batch_size = len(self.buffer)
 
-        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
-        states = []
-        actions = []
-        rewards = []
-        next_states = []
-        dones = []
+#         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+#         states = []
+#         actions = []
+#         rewards = []
+#         next_states = []
+#         dones = []
 
-        for idx in indices:
-            s, a, r, s2, d = self.buffer[idx]
-            states.append(s)
-            actions.append(a)
-            rewards.append(r)
-            next_states.append(s2)
-            dones.append(d)
+#         for idx in indices:
+#             s, a, r, s2, d = self.buffer[idx]
+#             states.append(s)
+#             actions.append(a)
+#             rewards.append(r)
+#             next_states.append(s2)
+#             dones.append(d)
 
-        return {
-            's': np.array(states, dtype=np.float32),
-            'a': np.array(actions, dtype=np.float32),
-            'r': np.array(rewards, dtype=np.float32),
-            's2': np.array(next_states, dtype=np.float32),
-            'd': np.array(dones, dtype=np.float32)
-        }
+#         return {
+#             's': np.array(states, dtype=np.float32),
+#             'a': np.array(actions, dtype=np.float32),
+#             'r': np.array(rewards, dtype=np.float32),
+#             's2': np.array(next_states, dtype=np.float32),
+#             'd': np.array(dones, dtype=np.float32)
+#         }
     
-    def __len__(self):
-        return len(self.buffer)
+#     def __len__(self):
+#         return len(self.buffer)
 
 class Actor(Model):
     def __init__(self, action_dim, action_max, hidden_sizes=(256,128,64,)):
@@ -212,19 +212,19 @@ class Actor(Model):
         return raw_action * tf.stop_gradient(self.action_max)
 
 
-class Critic(Model):
-    def __init__(self, hidden_sizes=(256,128,64,)):
-        super().__init__()
-        self.hidden_layers = [layers.Dense(h, activation='relu') for h in hidden_sizes]
-        self.output_layer = layers.Dense(1)
+# class Critic(Model):
+#     def __init__(self, hidden_sizes=(256,128,64,)):
+#         super().__init__()
+#         self.hidden_layers = [layers.Dense(h, activation='relu') for h in hidden_sizes]
+#         self.output_layer = layers.Dense(1)
 
-    def call(self, inputs):
-        state, action = inputs
-        x = tf.concat([state, action], axis=-1)
-        for lyr in self.hidden_layers:
-            x = lyr(x)
-        return tf.squeeze(self.output_layer(x), axis=1)
-        #return self.output_layer(x)   # shape (batch, 1)
+#     def call(self, inputs):
+#         state, action = inputs
+#         x = tf.concat([state, action], axis=-1)
+#         for lyr in self.hidden_layers:
+#             x = lyr(x)
+#         return tf.squeeze(self.output_layer(x), axis=1)
+#         #return self.output_layer(x)   # shape (batch, 1)
 
 
 # ROS2 TD3 AGENT NODE
@@ -238,16 +238,16 @@ class TD3AgentNode(Node):
 
 
 
-        # Define directory for saving training history
-        self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history_single')
-        os.makedirs(self.history_dir, exist_ok=True)
+        # # Define directory for saving training history
+        # self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history_single')
+        # os.makedirs(self.history_dir, exist_ok=True)
 
-        # Define full path for training log
-        self.history_file = os.path.join(self.history_dir, "td3_training_history.xlsx")
+        # # Define full path for training log
+        # self.history_file = os.path.join(self.history_dir, "td3_training_history.xlsx")
 
         # Initialize empty DataFrame with columns
-        self.history_columns = ["total_it", "episode", "episode_return", "actor_loss", "critic1_loss", "critic2_loss"]
-        self.training_history = pd.DataFrame(columns=self.history_columns)
+        # self.history_columns = ["total_it", "episode", "episode_return", "actor_loss", "critic1_loss", "critic2_loss"]
+        # self.training_history = pd.DataFrame(columns=self.history_columns)
 
 
         # save network weights
@@ -293,75 +293,43 @@ class TD3AgentNode(Node):
        
         # Create networks
         self.actor = Actor(self.num_actions, self.action_max, hidden_sizes)
-        self.critic1 = Critic(hidden_sizes)
-        self.critic2 = Critic(hidden_sizes)
-        self.target_actor = Actor(self.num_actions, self.action_max, hidden_sizes)
-        self.target_critic1 = Critic(hidden_sizes)
-        self.target_critic2 = Critic(hidden_sizes)
+
 
         # Build networks (initialize weights)
         dummy_state = tf.zeros([1, self.num_states])
         dummy_action = tf.zeros([1, self.num_actions])
         self.actor(dummy_state)
-        self.critic1([dummy_state, dummy_action])
-        self.critic2([dummy_state, dummy_action])
-        self.target_actor(dummy_state)
-        self.target_critic1([dummy_state, dummy_action])
-        self.target_critic2([dummy_state, dummy_action])
+
 
         ### Load weights if continuing training
         if self.resume_training and os.path.exists(self.load_dir):
             try:
                 self.actor.load_weights(os.path.join(self.load_dir, "actor.h5"))
-                self.critic1.load_weights(os.path.join(self.load_dir, "critic1.h5"))
-                self.critic2.load_weights(os.path.join(self.load_dir, "critic2.h5"))
-                self.target_actor.load_weights(os.path.join(self.load_dir, "target_actor.h5"))
-                self.target_critic1.load_weights(os.path.join(self.load_dir, "target_critic1.h5"))
-                self.target_critic2.load_weights(os.path.join(self.load_dir, "target_critic2.h5"))
+
                 self.get_logger().info("✅ Loaded previous weights — continuing training!")
             except Exception as e:
                 self.get_logger().warn(f"⚠️ Failed to load previous weights: {e}")
                 self.get_logger().warn("Starting training from scratch.")
-                self.target_actor.set_weights(self.actor.get_weights())
-                self.target_critic1.set_weights(self.critic1.get_weights())
-                self.target_critic2.set_weights(self.critic2.get_weights())
+
         else:
             self.get_logger().info("ℹ️ No previous weights found — starting from scratch.")
-            self.target_actor.set_weights(self.actor.get_weights())
-            self.target_critic1.set_weights(self.critic1.get_weights())
-            self.target_critic2.set_weights(self.critic2.get_weights())
+
         
         # Create optimizers
         self.actor_optimizer = tf.keras.optimizers.Adam(mu_lr)
-        self.critic1_optimizer = tf.keras.optimizers.Adam(q_lr)
-        self.critic2_optimizer = tf.keras.optimizers.Adam(q_lr)
+
 
         self.get_logger().info(f"Actor variables: {len(self.actor.trainable_variables)}")
-        self.get_logger().info(f"Critic1 variables: {len(self.critic1.trainable_variables)}")
-        self.get_logger().info(f"Critic2 variables: {len(self.critic2.trainable_variables)}")
+
 
         self.actor.summary()
-        self.critic1.summary()
-        self.critic2.summary()
 
-        # Create replay buffer
-        self.replay_buffer = ReplayBuffer(replay_size)
+
         
         # Initialize step counter for delayed policy updates
         self.total_it = 0
 
-    def save_weights(self, episode):
-        episode_dir = os.path.join(self.save_dir, f"episode_{episode}")
-        os.makedirs(episode_dir, exist_ok=True)
 
-        self.actor.save_weights(os.path.join(episode_dir, "actor.h5"))
-        self.critic1.save_weights(os.path.join(episode_dir, "critic1.h5"))
-        self.critic2.save_weights(os.path.join(episode_dir, "critic2.h5"))
-        self.target_actor.save_weights(os.path.join(episode_dir, "target_actor.h5"))
-        self.target_critic1.save_weights(os.path.join(episode_dir, "target_critic1.h5"))
-        self.target_critic2.save_weights(os.path.join(episode_dir, "target_critic2.h5"))
-
-        self.get_logger().info(f"✅ Saved weights for episode {episode} in {episode_dir}")
 
     #catch the whole waypoints
     def path_callback(self, msg: Path):
@@ -465,108 +433,10 @@ class TD3AgentNode(Node):
         a += noise_scale * np.random.randn(self.num_actions)
         return np.clip(a, -self.action_max, self.action_max)
     
-    #@tf.function
-    def update(self, batch):
-        states = tf.convert_to_tensor(batch['s'], dtype=tf.float32)
-        states_next = tf.convert_to_tensor(batch['s2'], dtype=tf.float32)
-        actions = tf.convert_to_tensor(batch['a'], dtype=tf.float32)
-        rewards = tf.convert_to_tensor(batch['r'], dtype=tf.float32)
-        dones = tf.convert_to_tensor(batch['d'], dtype=tf.float32)
 
-        # Normalize actions for critic
-        actions_norm = actions / self.action_max  # elementwise
-
-        # Add noise to target actions
-        noise = tf.random.normal(tf.shape(actions), stddev=self.target_noise)
-        noise = tf.clip_by_value(noise, -self.noise_clip, self.noise_clip)
-        
-        target_actions = self.target_actor(states_next)
-        target_actions = tf.clip_by_value(target_actions + noise, -self.action_max, self.action_max)
-        
-        target_actions_norm = target_actions / self.action_max
-
-        # Get minimum Q-value between two critics
-        #target_q1 = self.target_critic1([states_next, target_actions])
-        #target_q2 = self.target_critic2([states_next, target_actions])
-        target_q1 = self.target_critic1([states_next, target_actions_norm])
-        target_q2 = self.target_critic2([states_next, target_actions_norm])
-        target_q = tf.minimum(target_q1, target_q2)
-        
-        # Q targets
-        q_target = rewards + self.gamma * (1 - dones) * target_q
-        
-        # Update first critic
-        with tf.GradientTape() as tape:
-            #q1 = self.critic1([states, actions])
-            q1 = self.critic1([states, actions_norm])
-
-            critic1_loss = tf.reduce_mean((q1 - q_target)**2)
-        
-        critic1_gradients = tape.gradient(critic1_loss, self.critic1.trainable_variables)
-        self.critic1_optimizer.apply_gradients(
-            zip(critic1_gradients, self.critic1.trainable_variables))
-        
-        # Update second critic
-        with tf.GradientTape() as tape:
-            #q2 = self.critic2([states, actions])
-            q2 = self.critic2([states, actions_norm])
-
-            critic2_loss = tf.reduce_mean((q2 - q_target)**2)
-        
-        critic2_gradients = tape.gradient(critic2_loss, self.critic2.trainable_variables)
-        self.critic2_optimizer.apply_gradients(
-            zip(critic2_gradients, self.critic2.trainable_variables))
-        
-        #self.get_logger().info("critic1 gradient norms:")
-        #for g,v in zip(critic1_gradients, self.critic1.trainable_variables):
-        #    self.get_logger().info(f"{v.name} grad norm: {tf.norm(g).numpy() if g is not None else None}")
-
-        # Delayed policy updates
-        if self.total_it % self.policy_delay == 0:
-            # Update actor
-            with tf.GradientTape() as tape:
-                actor_actions = self.actor(states)
-
-                #add
-                q_val = self.critic1([states, actor_actions])
-                #self.get_logger().info(f"q_val shape: {q_val.shape}, dtype: {q_val.dtype}")
-
-                actor_loss = -tf.reduce_mean(q_val)
-                #actor_loss = -tf.reduce_mean(self.critic1([states, actor_actions]))
-            
-            actor_gradients = tape.gradient(actor_loss, self.actor.trainable_variables)
-            self.actor_optimizer.apply_gradients(
-                zip(actor_gradients, self.actor.trainable_variables))
-            
-            #self.get_logger().info("Actor gradient norms:")
-            #for g,v in zip(actor_gradients, self.actor.trainable_variables):
-            #    self.get_logger().info(f"{v.name} grad norm: {tf.norm(g).numpy() if g is not None else None}")
-
-            # Update target networks
-            self.update_target_networks()
-        else:
-            actor_loss = tf.constant(0.0)
-        
-        return critic1_loss, critic2_loss, actor_loss
-
-    def update_target_networks(self):
-        # Update target networks using soft update
-        for target, main in zip(self.target_actor.variables, self.actor.variables):
-            target.assign(self.decay * target + (1 - self.decay) * main)
-        
-        for target, main in zip(self.target_critic1.variables, self.critic1.variables):
-            target.assign(self.decay * target + (1 - self.decay) * main)
-            
-        for target, main in zip(self.target_critic2.variables, self.critic2.variables):
-            target.assign(self.decay * target + (1 - self.decay) * main)
 
     def train(self, num_episodes):
-        returns = []
-        # test_returns = []
-        critic1_losses = []
-        critic2_losses = []
-        actor_losses = []
-        self.get_logger().info(f"Using random actions for the initial {self.replay_buffer.max_size} steps...")
+
 
         for episode in range(num_episodes):
             self.get_logger().info(f" episode number: {episode+1}")
@@ -599,28 +469,14 @@ class TD3AgentNode(Node):
                 state_uncomplete[1] - current_waypoint[1])
 
             # ---- Per-episode temporary storage for logging ----
-            episode_logs = []  # List of dicts to store each step for this episode
 
             while not (done or episode_length == self.max_episode_length):
                 
                 #rclpy.spin_once(self)  # **keep callbacks alive**
                 
 
+                action = self.get_action(state_rl, self.action_noise)
 
-
-                # ---------------------------------------------------
-                # ACTION SELECTION LOGIC WITH resume_training SUPPORT
-                # ---------------------------------------------------
-                if self.resume_training:
-                    # Immediately use the policy (continue training mode)
-                    action = self.get_action(state_rl, self.action_noise)
-
-                else:
-                    # Old warmup behavior
-                    if len(self.replay_buffer) >= self.replay_buffer.max_size:
-                        action = self.get_action(state_rl, self.action_noise)
-                    else:
-                        action = np.random.uniform(low=-self.action_max, high=self.action_max)
 
 
 
@@ -673,70 +529,12 @@ class TD3AgentNode(Node):
                 self.get_logger().info(f"return is {episode_return}")
                 episode_length += 1
                 
-                # Store transition
-                done_store = False if episode_length == self.max_episode_length else done
-                self.replay_buffer.store(state_rl, action, reward, next_state_rl, done_store)
                 
-                if len(self.replay_buffer) == self.replay_buffer.max_size-1: #self.batch_size:
-                    self.get_logger().info("Memory full. Performing agent actions from now on.")
+
 
                 # Update state
                 state_rl = next_state_rl
                 
-                # Update networks if buffer has enough samples
-                if len(self.replay_buffer) >= self.batch_size:
-                    batch = self.replay_buffer.sample_batch(self.batch_size)
-                    critic1_loss, critic2_loss, actor_loss = self.update(batch)
-                    critic1_losses.append(critic1_loss.numpy())
-                    critic2_losses.append(critic2_loss.numpy())
-                    actor_losses.append(actor_loss.numpy())
-                    self.total_it += 1
-
-
-                    # Store step info in episode_logs
-                    episode_logs.append({
-                        "total_it": self.total_it,
-                        "episode": episode + 1,
-                        "episode_return": episode_return,
-                        "actor_loss": actor_loss.numpy(),
-                        "critic1_loss": critic1_loss.numpy(),
-                        "critic2_loss": critic2_loss.numpy(),
-                    })
-
-
-
-                #self.get_logger().info(f" replay_buffer length: {len(self.replay_buffer)} ")
-                #self.get_logger().info(f" actor_losses length: {len(actor_losses)} ")
-
-
-            # # ---- End of episode: save all step logs for this episode at once ----
-            # if episode_logs:
-            #     self.training_history = pd.concat([self.training_history, pd.DataFrame(episode_logs)], ignore_index=True)
-            #     self.training_history.to_excel(self.history_file, index=False)
-
-
-
-            # ---- End of episode: save all step logs for this episode at once ----
-            if episode_logs:
-                self.training_history = pd.concat([self.training_history, pd.DataFrame(episode_logs)], ignore_index=True)
-
-            # ---- Save every 100 episodes in a separate file ----
-            if (episode + 1) % 20 == 0 or (episode + 1) == num_episodes:
-                start_ep = episode - (episode % 20) + 1
-                end_ep = episode + 1
-                history_file_chunk = os.path.join(
-                    self.history_dir,
-                    f"td3_training_history_episodes_{start_ep}-{end_ep}.xlsx"
-                )
-                self.training_history.to_excel(history_file_chunk, index=False)
-                self.get_logger().info(f"Saved training history: {history_file_chunk}")
-
-                # Clear in-memory DataFrame for the next 100 episodes
-                self.training_history = pd.DataFrame(columns=self.history_columns)
-
-
-
-
 
 
             if episode>0:
@@ -744,15 +542,10 @@ class TD3AgentNode(Node):
                 self.get_logger().info(
                     f"Episode: {episode + 1:4d} | "
                     f"Score: {(episode_return)} | "
-                    f"Memory: {len(self.replay_buffer):5d} | "
-                    f"Actor Loss: {actor_loss.numpy():.6f} | "
-                    f"Critic 1 Loss: {critic1_loss.numpy():.6f} | "
-                    f"Critic 2 Loss: {critic2_loss.numpy():.6f}"
+
     )
-            # Save network weights at end of episode
-            self.save_weights('final')
-            returns.append(episode_return)
-        return returns, critic1_losses, critic2_losses, actor_losses
+
+        return 
 
     def observation_callback(self, msg):
         """Store latest observation — do NOT start RL here."""
