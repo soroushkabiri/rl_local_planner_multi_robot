@@ -23,6 +23,13 @@ from gazebo_msgs.srv import SpawnEntity
 from geometry_msgs.msg import Pose
 import subprocess
 import random
+import rclpy
+from gazebo_msgs.srv import SetEntityState
+from gazebo_msgs.msg import EntityState
+import math
+import random
+import transforms3d.euler as euler
+
 
 def normalize_angle(angle):
     """Normalize angle to [-pi, pi]."""
@@ -153,6 +160,49 @@ class GazeboResetClient():
         rclpy.spin_until_future_complete(self.node, future)
         self.node.get_logger().info('World reset done!')
 
+
+class GazeboSpawner:
+    def __init__(self, node):
+        self.node = node
+        self.entity_name = "single_robot"
+
+        self.cli_set_state = self.node.create_client(SetEntityState, '/set_entity_state')
+        while not self.cli_set_state.wait_for_service(timeout_sec=1.0):
+            self.node.get_logger().info('Waiting for /set_entity_state service...')
+
+    def random_pose(self):
+        x = random.uniform(-4.0, 0.0)
+        y = random.uniform(-0.1, 0.1)
+        yaw = random.uniform(-3.14, 3.14)
+        return x, y, yaw
+
+    def teleport_robot(self):
+        x, y, yaw = self.random_pose()
+
+        state = EntityState()
+        state.name = self.entity_name
+        state.pose.position.x = x
+        state.pose.position.y = y
+        state.pose.position.z = 0.0
+
+        # quaternion = [w, x, y, z]
+        q = euler.euler2quat(0, 0, yaw)
+
+        state.pose.orientation.x = q[1]
+        state.pose.orientation.y = q[2]
+        state.pose.orientation.z = q[3]
+        state.pose.orientation.w = q[0]
+
+        req = SetEntityState.Request()
+        req.state = state
+
+        self.node.get_logger().info(f"Teleporting robot to x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}")
+        future = self.cli_set_state.call_async(req)
+        rclpy.spin_until_future_complete(self.node, future)
+
+
+
+
 class ReplayBuffer:
     def __init__(self, max_size):
         self.buffer = deque(maxlen=max_size)
@@ -236,10 +286,13 @@ class Critic(Model):
 # ROS2 TD3 AGENT NODE
 class TD3AgentNode(Node):
     def __init__(self, hidden_sizes=(256,256,256,), replay_size=int(1e3), mu_lr=1e-3, q_lr=1e-3,
-        gamma=0.99, decay=0.995, batch_size=64, action_noise=0.1, target_noise=0.2,
-        noise_clip=0.5, policy_delay=2,max_episode_length=2000):
+        gamma=0.99, decay=0.995, batch_size=4, action_noise=0.1, target_noise=0.2,
+        noise_clip=0.5, policy_delay=2,max_episode_length=20):
         super().__init__("td3_agent")
-        
+
+
+        # Continue training flag
+
         self.resume_training = False
 
         # Define directory for saving training history
@@ -258,14 +311,14 @@ class TD3AgentNode(Node):
         self.save_dir = os.path.expanduser("~/rl_planner/rl_local_planner_multi_robot/td3_weights_single")
         os.makedirs(self.save_dir, exist_ok=True)
 
-        # Continue training flag
-        self.resume_training = True  # set False if you want fresh training
 
         # Directory containing final weights
         self.load_dir = os.path.join(self.save_dir, "episode_final")
 
         # Gazebo reset helper
         self.gz_reset = GazeboResetClient(self)
+        self.spawner = GazeboSpawner(self)
+
 
         self.gamma = gamma
         self.decay = decay
@@ -496,6 +549,12 @@ class TD3AgentNode(Node):
         self.gz_reset.unpause()
         time.sleep(3)
 
+        # Teleport robot to random initial position instead of respawning
+        self.get_logger().info("Teleporting robot to random initial state...")
+        self.spawner.teleport_robot()
+        time.sleep(1.0)
+
+
     def get_action(self, s, noise_scale):
         a = self.actor(tf.convert_to_tensor(s.reshape(1,-1), dtype=tf.float32))
         a = a.numpy()[0]
@@ -610,15 +669,43 @@ class TD3AgentNode(Node):
             self.current_wp_idx = 0
 
             self.reset_environment()
+
+
+
+
             self.send_action_to_robot(np.array([0,0]))
             # Run automatic alignment only once per episode
             time.sleep(4.0)
+
+
+
+
+
+
             # Spin a few times to ensure callbacks update self.last_obs
             for _ in range(5):
                 rclpy.spin_once(self, timeout_sec=0.01)
+
+
+
+
+
             #rclpy.spin_once(self)  # **keep callbacks alive**
             self.prev_distance_to_wp = None
             state_uncomplete=self.last_obs
+
+
+
+
+
+
+
+
+
+
+
+
+
             current_waypoint, wp_changed=self.update_waypoint(state_uncomplete)
             #state_reward = np.concatenate([current_waypoint, state_uncomplete], axis=0)  # shape (19,)
             prev_action=np.array([0,0])
@@ -676,8 +763,13 @@ class TD3AgentNode(Node):
 
                 #save previous action to use later in states
                 prev_action=action
+
+###################################################################
                 # Take action in environment
-                self.send_action_to_robot(action)
+                #self.send_action_to_robot(action)
+                
+                
+                
                 # wait till the action implemented on environment
                 time.sleep(0.1)
                 self.send_action_to_robot(np.array([0,0]))

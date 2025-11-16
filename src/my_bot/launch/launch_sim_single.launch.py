@@ -40,7 +40,7 @@ def generate_launch_description():
                    launch_arguments={'gui-client-plugin': ''}.items() )
 
     ld.add_action(gzserver_cmd)
-    #ld.add_action(gzclient_cmd)
+    ld.add_action(gzclient_cmd)
     
     single_robot_description = Command(['xacro ', xacro_file_single_robot, ' prefix:=', 'single_robot' + '_'])
 
