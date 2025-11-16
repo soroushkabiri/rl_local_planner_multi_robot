@@ -27,6 +27,8 @@ setup(
 
         'TD3 = rl_planner.TD3:main',
         'TD3_single = rl_planner.TD3_single:main',
+        'TD3_single_asus = rl_planner.TD3_single_asus:main',
+
         'TD3_single_visualizer = rl_planner.TD3_single_visualizer:main',
 
         'td3_actor_visualizer = rl_planner.td3_actor_visualizer:main',

@@ -307,8 +307,8 @@ class ClosestObstaclesFinder(Node):
         self.odom_pose = None
 
         # File paths for offline storage
-        self.map_yaml_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/saved_map_closest_map_3.yaml')
-        self.map_data_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/saved_map_data_closest_3.txt')
+        self.map_yaml_file = os.path.expanduser('~/rl_planner/rl_local_planner_multi_robot/saved_map_closest_map_3.yaml')
+        self.map_data_file = os.path.expanduser('~/rl_planner/rl_local_planner_multi_robot/saved_map_data_closest_3.txt')
 
         # Publishers for 5 closest obstacles + the closest one
         self.closest_publishers = [

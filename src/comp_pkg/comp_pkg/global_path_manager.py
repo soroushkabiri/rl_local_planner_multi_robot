@@ -200,6 +200,8 @@ from geometry_msgs.msg import PoseStamped
 import yaml
 import os
 import math
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 class GlobalPathManager(Node):
@@ -207,7 +209,9 @@ class GlobalPathManager(Node):
         super().__init__('global_path_manager')
 
         # File path to save the global path
-        self.path_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/my_map_3_global_path.yaml')
+        pkg_path=os.path.join(get_package_share_directory('comp_pkg'))
+        self.path_file = os.path.join(pkg_path,'map_data','my_map_3_global_path.yaml')
+
         self.global_path = None
         self.latched = False
         self.number_of_waypoints = 20  # <-- configurable number of waypoints to use

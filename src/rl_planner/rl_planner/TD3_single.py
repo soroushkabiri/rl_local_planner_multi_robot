@@ -48,6 +48,9 @@ def make_relative_state(state_uncomplete, current_wp,prev_action):
     v, w = prev_action[0], prev_action[1]
 
 
+    v_norm=v/0.15
+    w_norm=w/0.3
+
     # Distance to final goal
     dx_to_goal = goal_x - rect_x
     dy_to_goal = goal_y - rect_y
@@ -102,8 +105,8 @@ def make_relative_state(state_uncomplete, current_wp,prev_action):
         cos_angle_to_obs,
         #angle_to_obs_norm,
         #leader_theta_norm,
-        v,
-        w,
+        v_norm,
+        w_norm,
     ], dtype=np.float32)
 
     return rl_state
@@ -231,7 +234,7 @@ class Critic(Model):
 class TD3AgentNode(Node):
     def __init__(self, hidden_sizes=(256,128,64,), replay_size=int(5e3), mu_lr=1e-3, q_lr=1e-3,
         gamma=0.99, decay=0.995, batch_size=64, action_noise=0.1, target_noise=0.2,
-        noise_clip=0.5, policy_delay=2,max_episode_length=1500):
+        noise_clip=0.5, policy_delay=2,max_episode_length=2000):
         super().__init__("td3_agent")
         
         self.resume_training = True
@@ -239,7 +242,7 @@ class TD3AgentNode(Node):
 
 
         # Define directory for saving training history
-        self.history_dir = os.path.expanduser('~/ros_for_project_1/articulate_robot/td3_history_single')
+        self.history_dir = os.path.expanduser('~/rl_planner/rl_local_planner_multi_robot/td3_history_single')
         os.makedirs(self.history_dir, exist_ok=True)
 
         # Define full path for training log
@@ -251,7 +254,7 @@ class TD3AgentNode(Node):
 
 
         # save network weights
-        self.save_dir = os.path.expanduser("~/ros_for_project_1/articulate_robot/td3_weights_single")
+        self.save_dir = os.path.expanduser("~/rl_planner/rl_local_planner_multi_robot/td3_weights_single")
         os.makedirs(self.save_dir, exist_ok=True)
 
         # Continue training flag

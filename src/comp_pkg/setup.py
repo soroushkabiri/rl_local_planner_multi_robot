@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+import os
+from setuptools import setup
 
 package_name = 'comp_pkg'
 
@@ -16,7 +18,9 @@ setup(
         #('share/' + package_name + '/launch', ['launch/combined.launch.py']),
         ('share/' + package_name + '/launch', ['launch/velocity_publishing.launch.py']),
         ('share/' + package_name + '/launch', ['launch/nodes_before_nav2_slamtoolbox.launch.py']),
-
+        # Install map_data folder
+        ('share/' + package_name + '/map_data', 
+            [os.path.join('map_data', f) for f in os.listdir('map_data')]),
 
     ],
     install_requires=['setuptools'],

@@ -297,6 +297,8 @@ from geometry_msgs.msg import Point
 import math
 import os
 import yaml
+from ament_index_python.packages import get_package_share_directory
+import os
 
 class ClosestObstaclesFinder(Node):
     def __init__(self):
@@ -307,8 +309,15 @@ class ClosestObstaclesFinder(Node):
         self.odom_pose = None
 
         # File paths for offline storage
-        self.map_yaml_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/saved_map_closest_map_3.yaml')
-        self.map_data_file = os.path.expanduser('~/ros_for_project_1/articulate_robot/saved_map_data_closest_3.txt')
+
+
+        pkg_path=os.path.join(get_package_share_directory('comp_pkg'))
+        self.map_yaml_file = os.path.join(pkg_path,'map_data','saved_map_closest_map_3.yaml')
+        self.map_data_file = os.path.join(pkg_path,'map_data','saved_map_data_closest_3.txt')
+
+
+        #self.map_yaml_file = os.path.expanduser('~/rl_planner/rl_local_planner_multi_robot/saved_map_closest_map_3.yaml')
+        #self.map_data_file = os.path.expanduser('~/rl_planner/rl_local_planner_multi_robot/saved_map_data_closest_3.txt')
 
         # Publishers for 5 closest obstacles + the closest one
         self.closest_publishers = [
